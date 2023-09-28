@@ -18,7 +18,8 @@ set -e
 
 unset HOST
 
-: ${MAKE_VERSION:=4.4.1}
+: ${$MAKE_VERSION:=4.4.1}
+: ${ARCHS:=${TOOLCHAIN_ARCHS-x86_64}}
 
 while [ $# -gt 0 ]; do
     case "$1" in
@@ -38,11 +39,6 @@ fi
 
 mkdir -p "$PREFIX"
 PREFIX="$(cd "$PREFIX" && pwd)"
-
-: ${CORES:=$(nproc 2>/dev/null)}
-: ${CORES:=$(sysctl -n hw.ncpu 2>/dev/null)}
-: ${CORES:=4}
-: ${ARCHS:=${TOOLCHAIN_ARCHS-i686 x86_64 armv7 aarch64}}
 
 download() {
     if command -v wget >/dev/null; then
@@ -68,5 +64,5 @@ fi
 mkdir -p build$CROSS_NAME
 cd build$CROSS_NAME
 ../configure --prefix="$PREFIX" $CONFIGFLAGS --program-prefix=mingw32- --enable-job-server LDFLAGS="-Wl,-s"
-make -j$CORES
+make -j8
 make install-binPROGRAMS

@@ -24,16 +24,6 @@ PREFIX="$1"
 PREFIX="$(cd "$PREFIX" && pwd)"
 export PATH=$PREFIX/bin:$PATH
 
-: ${CORES:=$(nproc 2>/dev/null)}
-: ${CORES:=$(sysctl -n hw.ncpu 2>/dev/null)}
-: ${CORES:=4}
-: ${ARCHS:=${TOOLCHAIN_ARCHS-i686 x86_64 armv7 aarch64}}
-
-MAKE=make
-if command -v gmake >/dev/null; then
-    MAKE=gmake
-fi
-
 case $(uname -s) in
 Darwin)
     ;;
@@ -137,8 +127,8 @@ for arch in $ARCHS; do
     [ -z "$CLEAN" ] || rm -rf $TEST_DIR
     mkdir -p $TEST_DIR
     cd $TEST_DIR
-    $MAKE -f ../Makefile ARCH=$arch HAVE_UWP=$HAVE_UWP HAVE_CFGUARD=$HAVE_CFGUARD HAVE_SANITIZERS=$HAVE_SANITIZERS NATIVE=$NATIVE RUNTIMES_SRC=$PREFIX/$arch-w64-mingw32/bin clean
-    $MAKE -f ../Makefile ARCH=$arch HAVE_UWP=$HAVE_UWP HAVE_CFGUARD=$HAVE_CFGUARD HAVE_SANITIZERS=$HAVE_SANITIZERS NATIVE=$NATIVE RUNTIMES_SRC=$PREFIX/$arch-w64-mingw32/bin RUN="$RUN" $COPYARG $MAKEOPTS -j$CORES $TARGET
+    make -f ../Makefile ARCH=$arch HAVE_UWP=$HAVE_UWP HAVE_CFGUARD=$HAVE_CFGUARD HAVE_SANITIZERS=$HAVE_SANITIZERS NATIVE=$NATIVE RUNTIMES_SRC=$PREFIX/$arch-w64-mingw32/bin clean
+    make -f ../Makefile ARCH=$arch HAVE_UWP=$HAVE_UWP HAVE_CFGUARD=$HAVE_CFGUARD HAVE_SANITIZERS=$HAVE_SANITIZERS NATIVE=$NATIVE RUNTIMES_SRC=$PREFIX/$arch-w64-mingw32/bin RUN="$RUN" $COPYARG makeOPTS -j8 $TARGET
     cd ..
 done
 echo All tests succeeded
