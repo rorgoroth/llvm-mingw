@@ -39,11 +39,6 @@ fi
 mkdir -p "$PREFIX"
 PREFIX="$(cd "$PREFIX" && pwd)"
 
-: ${CORES:=$(nproc 2>/dev/null)}
-: ${CORES:=$(sysctl -n hw.ncpu 2>/dev/null)}
-: ${CORES:=4}
-: ${ARCHS:=${TOOLCHAIN_ARCHS-i686 x86_64 armv7 aarch64}}
-
 download() {
     if command -v wget >/dev/null; then
         wget "$1"
@@ -52,12 +47,12 @@ download() {
     fi
 }
 
-if [ ! -d make-$MAKE_VERSION ]; then
-    download https://ftp.gnu.org/gnu/make/make-$MAKE_VERSION.tar.gz
-    tar -zxf make-$MAKE_VERSION.tar.gz
+if [ ! -d make-make_VERSION ]; then
+    download https://ftp.gnu.org/gnu/make/make-make_VERSION.tar.gz
+    tar -zxf make-make_VERSION.tar.gz
 fi
 
-cd make-$MAKE_VERSION
+cd make-make_VERSION
 
 if [ -n "$HOST" ]; then
     CONFIGFLAGS="$CONFIGFLAGS --host=$HOST"
@@ -68,5 +63,5 @@ fi
 mkdir -p build$CROSS_NAME
 cd build$CROSS_NAME
 ../configure --prefix="$PREFIX" $CONFIGFLAGS --program-prefix=mingw32- --enable-job-server LDFLAGS="-Wl,-s"
-make -j$CORES
+make -j8
 make install-binPROGRAMS

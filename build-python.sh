@@ -47,15 +47,6 @@ if [ -z "$CHECKOUT_ONLY" ]; then
     PREFIX="$(cd "$PREFIX" && pwd)"
 fi
 
-MAKE=make
-if command -v gmake >/dev/null; then
-    MAKE=gmake
-fi
-
-: ${CORES:=$(nproc 2>/dev/null)}
-: ${CORES:=$(sysctl -n hw.ncpu 2>/dev/null)}
-: ${CORES:=4}
-
 if [ ! -d libffi ]; then
     git clone https://github.com/libffi/libffi.git
     CHECKOUT_LIBFFI=1
@@ -93,8 +84,8 @@ if [ -z "$HOST" ]; then
     mkdir -p $BUILDDIR
     cd $BUILDDIR
     ../configure --prefix="$PREFIX" --disable-symvers --disable-docs
-    $MAKE -j$CORES
-    $MAKE install
+    make -j8
+    make install
     cd ../..
 
     cd cpython-native
@@ -104,8 +95,8 @@ if [ -z "$HOST" ]; then
     ../configure --prefix="$PREFIX" \
         CFLAGS="-I$PREFIX/include" CXXFLAGS="-I$PREFIX/include" LDFLAGS="-L$PREFIX/lib -Wl,-s" \
         --without-ensurepip
-    $MAKE -j$CORES
-    $MAKE install
+    make -j8
+    make install
     exit 0
 fi
 
@@ -131,8 +122,8 @@ cd libffi
 mkdir -p $BUILDDIR
 cd $BUILDDIR
 ../configure --prefix="$PREFIX" --host=$HOST --disable-symvers --disable-docs
-$MAKE -j$CORES
-$MAKE install
+make -j8
+make install
 cd ../..
 
 cd cpython-mingw
@@ -155,8 +146,8 @@ export CXX=$HOST-g++
     --without-ensurepip         \
     --without-c-locale-coercion
 
-$MAKE -j$CORES
-$MAKE install
+make -j8
+make install
 rm -rf $PREFIX/lib/python*/test
 find $PREFIX/lib/python* -name __pycache__ | xargs rm -rf
 cd ../..

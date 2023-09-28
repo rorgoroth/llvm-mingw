@@ -41,11 +41,6 @@ PREFIX="$(cd "$PREFIX" && pwd)"
 export PATH="$PREFIX/bin:$PATH"
 unset CC
 
-: ${CORES:=$(nproc 2>/dev/null)}
-: ${CORES:=$(sysctl -n hw.ncpu 2>/dev/null)}
-: ${CORES:=4}
-: ${ARCHS:=${TOOLCHAIN_ARCHS-i686 x86_64 armv7 aarch64}}
-
 if [ ! -d mingw-w64 ] || [ -n "$SYNC" ]; then
     CHECKOUT_ONLY=1 ./build-mingw-w64.sh
 fi
@@ -61,7 +56,7 @@ for lib in winpthreads winstorecompat; do
         ../configure --host=$arch-w64-mingw32 --prefix="$arch_prefix" --libdir="$arch_prefix/lib" \
             CFLAGS="$USE_CFLAGS" \
             CXXFLAGS="$USE_CFLAGS"
-        make -j$CORES
+        make -j8
         make install
         cd ..
         mkdir -p "$arch_prefix/share/mingw32"

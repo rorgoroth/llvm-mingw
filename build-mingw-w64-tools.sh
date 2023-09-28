@@ -48,17 +48,6 @@ fi
 
 cd mingw-w64
 
-MAKE=make
-if command -v gmake >/dev/null; then
-    MAKE=gmake
-fi
-
-: ${CORES:=$(nproc 2>/dev/null)}
-: ${CORES:=$(sysctl -n hw.ncpu 2>/dev/null)}
-: ${CORES:=4}
-: ${ARCHS:=${TOOLCHAIN_ARCHS-i686 x86_64 armv7 aarch64}}
-: ${TARGET_OSES:=${TOOLCHAIN_TARGET_OSES-mingw32 mingw32uwp}}
-
 if [ -n "$HOST" ]; then
     CONFIGFLAGS="$CONFIGFLAGS --host=$HOST"
     CROSS_NAME=-$HOST
@@ -109,8 +98,8 @@ cd mingw-w64-tools/gendef
 mkdir -p build${CROSS_NAME}
 cd build${CROSS_NAME}
 ../configure --prefix="$PREFIX" $CONFIGFLAGS
-$MAKE -j$CORES
-$MAKE install-strip
+make -j8
+make install-strip
 mkdir -p "$PREFIX/share/gendef"
 install -m644 ../COPYING "$PREFIX/share/gendef"
 cd ../../widl
@@ -118,8 +107,8 @@ cd ../../widl
 mkdir -p build${CROSS_NAME}
 cd build${CROSS_NAME}
 ../configure --prefix="$PREFIX" --target=$ANY_ARCH-w64-mingw32 --with-widl-includedir="$INCLUDEDIR" $CONFIGFLAGS
-$MAKE -j$CORES
-$MAKE install-strip
+make -j8
+make install-strip
 mkdir -p "$PREFIX/share/widl"
 install -m644 ../../../COPYING "$PREFIX/share/widl"
 cd ..

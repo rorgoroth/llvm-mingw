@@ -69,25 +69,9 @@ fi
 
 [ -z "$CHECKOUT_ONLY" ] || exit 0
 
-MAKE=make
-if command -v gmake >/dev/null; then
-    MAKE=gmake
-fi
-
-case $(uname) in
-MINGW*|MSYS*)
-    CRT_CONFIG_FLAGS="--disable-dependency-tracking"
-    ;;
-esac
-
 export PATH="$PREFIX/bin:$PATH"
 
 unset CC
-
-: ${CORES:=$(nproc 2>/dev/null)}
-: ${CORES:=$(sysctl -n hw.ncpu 2>/dev/null)}
-: ${CORES:=4}
-: ${ARCHS:=${TOOLCHAIN_ARCHS-i686 x86_64 armv7 aarch64}}
 
 if [ -z "$SKIP_INCLUDE_TRIPLET_PREFIX" ]; then
     HEADER_ROOT="$PREFIX/generic-w64-mingw32"
@@ -101,7 +85,7 @@ mkdir -p build
 cd build
 ../configure --prefix="$HEADER_ROOT" \
     --enable-idl --with-default-win32-winnt=$DEFAULT_WIN32_WINNT --with-default-msvcrt=$DEFAULT_MSVCRT INSTALL="install -C"
-$MAKE install
+make install
 cd ../..
 if [ -z "$SKIP_INCLUDE_TRIPLET_PREFIX" ]; then
     for arch in $ARCHS; do
@@ -133,8 +117,8 @@ for arch in $ARCHS; do
     esac
     FLAGS="$FLAGS --with-default-msvcrt=$DEFAULT_MSVCRT"
     ../configure --host=$arch-w64-mingw32 --prefix="$PREFIX/$arch-w64-mingw32" $FLAGS $CFGUARD_FLAGS $CRT_CONFIG_FLAGS
-    $MAKE -j$CORES
-    $MAKE install
+    make -j8
+    make install
     cd ..
 done
 cd ..
