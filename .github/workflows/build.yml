@@ -1,0 +1,59 @@
+name: build
+on:
+  workflow_dispatch:
+  push:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: setup_alpine
+        uses: jirutka/setup-alpine@v1
+        with:
+          extra-repositories: |
+            http://dl-cdn.alpinelinux.org/alpine/edge/testing
+
+      - name: setup_git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global init.defaultBranch main
+
+      - name: add_packages
+        run: |
+          apk add alpine-sdk atool axel bash clang coreutils cmake curl gawk git libc++ lld make openssh openssl python3 samurai wget xz
+        shell: alpine.sh --root {0}
+
+      - name: run_build
+        run: |
+          sh build.sh
+          md5sum *.tar.xz > md5.txt
+        shell: alpine.sh {0}
+
+      - name: upload_md5
+        uses: actions/upload-artifact@master
+        if: always()
+        with:
+          name: md5sum
+          path: md5.txt
+
+      - name: create_release_tag
+        id: create_release
+        uses: marvinpinto/action-automatic-releases@latest
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          automatic_release_tag: "17.0.3"
+          prerelease: false
+          title: 17.0.3
+
+      - name: upload_packages
+        id: upload_release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: llvm-x86_64-w64-mingw32_17.0.3.tar.xz
+          tag: 17.0.3
+          overwrite: true
+          file_glob: true
