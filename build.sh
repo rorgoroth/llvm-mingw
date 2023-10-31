@@ -1,7 +1,6 @@
 #!/bin/bash
 
-rm -rf llvm-x86_64-w64-mingw32
-rm -rf *.tar.xz
+git clean -xdf
 
 ./build-all.sh --disable-clang-tools-extra \
                --disable-lldb \
@@ -13,4 +12,4 @@ rm -rf *.tar.xz
 rm -v llvm-x86_64-w64-mingw32/x86_64-w64-mingw32/lib/*.dll.a
 cp -v llvm-x86_64-w64-mingw32/x86_64-w64-mingw32/lib/libc++.a llvm-x86_64-w64-mingw32/x86_64-w64-mingw32/lib/libstdc++.a
 
-apack llvm-x86_64-w64-mingw32_17.0.3.tar.xz llvm-x86_64-w64-mingw32
+apack 17.0.4.tar.xz llvm-x86_64-w64-mingw32
