@@ -17,7 +17,7 @@
 set -e
 
 BUILD_STATIC=ON
-BUILD_SHARED=ON
+BUILD_SHARED=OFF
 CFGUARD_CFLAGS="-mguard=cf"
 
 while [ $# -gt 0 ]; do
