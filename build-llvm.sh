@@ -267,7 +267,7 @@ fi
 
 cd llvm-project/llvm
 
-PROJECTS="clang;lld;polly"
+PROJECTS="clang;lld"
 if [ -n "$LLDB" ]; then
     PROJECTS="$PROJECTS;lldb"
 fi
@@ -291,10 +291,8 @@ cmake \
     -DLLVM_ENABLE_PROJECTS="$PROJECTS" \
     -DLLVM_INCLUDE_BENCHMARKS=OFF \
     -DLLVM_INCLUDE_TESTS=OFF \
-    -DLLVM_ENABLE_LTO=Thin \
     -DLLVM_INSTALL_TOOLCHAIN_ONLY=$TOOLCHAIN_ONLY \
     -DLLVM_LINK_LLVM_DYLIB=$LINK_DYLIB \
-    -DLLVM_POLLY_LINK_INTO_TOOLS=ON \
     -DLLVM_TARGETS_TO_BUILD="X86" \
     -DLLVM_TOOLCHAIN_TOOLS="llvm-ar;llvm-ranlib;llvm-objdump;llvm-rc;llvm-cvtres;llvm-nm;llvm-strings;llvm-readobj;llvm-dlltool;llvm-pdbutil;llvm-objcopy;llvm-strip;llvm-cov;llvm-profdata;llvm-addr2line;llvm-symbolizer;llvm-windres;llvm-ml;llvm-readelf;llvm-size;llvm-cxxfilt" \
     ${HOST+-DLLVM_HOST_TRIPLE=$HOST} \
