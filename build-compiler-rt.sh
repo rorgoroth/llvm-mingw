@@ -18,7 +18,7 @@ set -e
 
 SRC_DIR=../lib/builtins
 BUILD_SUFFIX=
-BUILD_BUILTINS=TRUE
+BUILD_BUILTINS=FALSE
 ENABLE_CFGUARD=1
 CFGUARD_CFLAGS="-mguard=cf"
 
@@ -57,27 +57,13 @@ mkdir -p "$PREFIX"
 PREFIX="$(cd "$PREFIX" && pwd)"
 export PATH="$PREFIX/bin:$PATH"
 
-: ${ARCHS:=${TOOLCHAIN_ARCHS-i686 x86_64 armv7 aarch64}}
+: ${ARCHS:=${TOOLCHAIN_ARCHS-x86_64}}
 
 ANY_ARCH=$(echo $ARCHS | awk '{print $1}')
 CLANG_RESOURCE_DIR="$("$PREFIX/bin/$ANY_ARCH-w64-mingw32-clang" --print-resource-dir)"
 
 if [ ! -d llvm-project/compiler-rt ] || [ -n "$SYNC" ]; then
     CHECKOUT_ONLY=1 ./build-llvm.sh
-fi
-
-if command -v ninja >/dev/null; then
-    CMAKE_GENERATOR="Ninja"
-else
-    : ${CORES:=$(nproc 2>/dev/null)}
-    : ${CORES:=$(sysctl -n hw.ncpu 2>/dev/null)}
-    : ${CORES:=4}
-
-    case $(uname) in
-    MINGW*)
-        CMAKE_GENERATOR="MSYS Makefiles"
-        ;;
-    esac
 fi
 
 cd llvm-project/compiler-rt
@@ -99,7 +85,7 @@ for arch in $ARCHS; do
     cd build-$arch$BUILD_SUFFIX
     [ -n "$NO_RECONF" ] || rm -rf CMake*
     cmake \
-        ${CMAKE_GENERATOR+-G} "$CMAKE_GENERATOR" \
+        -G Ninja \
         -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_INSTALL_PREFIX="$CLANG_RESOURCE_DIR" \
         -DCMAKE_C_COMPILER=$arch-w64-mingw32-clang \
@@ -113,16 +99,20 @@ for arch in $ARCHS; do
         -DCOMPILER_RT_DEFAULT_TARGET_ONLY=TRUE \
         -DCOMPILER_RT_USE_BUILTINS_LIBRARY=TRUE \
         -DCOMPILER_RT_BUILD_BUILTINS=$BUILD_BUILTINS \
+        -DCOMPILER_RT_STATIC_CXX_LIBRARY=TRUE \
         -DCOMPILER_RT_EXCLUDE_ATOMIC_BUILTIN=FALSE \
         -DLLVM_CONFIG_PATH="" \
         -DCMAKE_FIND_ROOT_PATH=$PREFIX/$arch-w64-mingw32 \
         -DCMAKE_FIND_ROOT_PATH_MODE_INCLUDE=ONLY \
         -DCMAKE_FIND_ROOT_PATH_MODE_PACKAGE=ONLY \
+        -DSANITIZER_ALLOW_CXXABI=OFF \
         -DSANITIZER_CXX_ABI=libc++ \
-        -DCMAKE_C_FLAGS_INIT="$CFGUARD_CFLAGS" \
+        -DCMAKE_C_FLAGS_INIT="$CFGUARD_CFLAGS " \
         -DCMAKE_CXX_FLAGS_INIT="$CFGUARD_CFLAGS" \
+        -DCMAKE_CXX_FLAGS='-std=c++11' \
+        -DCMAKE_EXE_LINKER_FLAGS_INIT='-lc++abi' \
         $SRC_DIR
-    cmake --build . ${CORES:+-j${CORES}}
+    cmake --build .
     cmake --install .
     mkdir -p "$PREFIX/$arch-w64-mingw32/bin"
     if [ -n "$SANITIZERS" ]; then

@@ -136,20 +136,6 @@ else
     esac
 fi
 
-if command -v ninja >/dev/null; then
-    CMAKE_GENERATOR="Ninja"
-else
-    : ${CORES:=$(nproc 2>/dev/null)}
-    : ${CORES:=$(sysctl -n hw.ncpu 2>/dev/null)}
-    : ${CORES:=4}
-
-    case $(uname) in
-    MINGW*)
-        CMAKE_GENERATOR="MSYS Makefiles"
-        ;;
-    esac
-fi
-
 CMAKEFLAGS="$LLVM_CMAKEFLAGS"
 
 if [ -n "$HOST" ]; then
@@ -223,15 +209,6 @@ elif [ -n "$STAGE2" ]; then
     CMAKEFLAGS="$CMAKEFLAGS -DCMAKE_C_COMPILER=clang"
     CMAKEFLAGS="$CMAKEFLAGS -DCMAKE_CXX_COMPILER=clang++"
     CMAKEFLAGS="$CMAKEFLAGS -DLLVM_USE_LINKER=lld"
-else
-    # Native compilation with the system default compiler.
-
-    # Use a faster linker, if available.
-    if command -v ld.lld >/dev/null; then
-        CMAKEFLAGS="$CMAKEFLAGS -DLLVM_USE_LINKER=lld"
-    elif command -v ld.gold >/dev/null; then
-        CMAKEFLAGS="$CMAKEFLAGS -DLLVM_USE_LINKER=gold"
-    fi
 fi
 
 if [ -n "$TARGET_WINDOWS" ]; then
@@ -307,20 +284,26 @@ mkdir -p $BUILDDIR
 cd $BUILDDIR
 [ -n "$NO_RECONF" ] || rm -rf CMake*
 cmake \
-    ${CMAKE_GENERATOR+-G} "$CMAKE_GENERATOR" \
+    -G Ninja \
     -DCMAKE_INSTALL_PREFIX="$PREFIX" \
     -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_C_COMPILER=clang \
+    -DCMAKE_CXX_COMPILER=clang++ \
     -DLLVM_ENABLE_ASSERTIONS=$ASSERTS \
+    -DLLVM_ENABLE_LIBCXX=ON \
+    -DLLVM_ENABLE_LLD=ON \
     -DLLVM_ENABLE_PROJECTS="$PROJECTS" \
-    -DLLVM_TARGETS_TO_BUILD="ARM;AArch64;X86;NVPTX" \
+    -DLLVM_INCLUDE_BENCHMARKS=OFF \
+    -DLLVM_INCLUDE_TESTS=OFF \
     -DLLVM_INSTALL_TOOLCHAIN_ONLY=$TOOLCHAIN_ONLY \
     -DLLVM_LINK_LLVM_DYLIB=$LINK_DYLIB \
+    -DLLVM_TARGETS_TO_BUILD="X86" \
     -DLLVM_TOOLCHAIN_TOOLS="llvm-ar;llvm-ranlib;llvm-objdump;llvm-rc;llvm-cvtres;llvm-nm;llvm-strings;llvm-readobj;llvm-dlltool;llvm-pdbutil;llvm-objcopy;llvm-strip;llvm-cov;llvm-profdata;llvm-addr2line;llvm-symbolizer;llvm-windres;llvm-ml;llvm-readelf;llvm-size;llvm-cxxfilt" \
     ${HOST+-DLLVM_HOST_TRIPLE=$HOST} \
     $CMAKEFLAGS \
     ..
 
-cmake --build . ${CORES:+-j${CORES}}
+cmake --build .
 cmake --install . --strip
 
 cp ../LICENSE.TXT $PREFIX
