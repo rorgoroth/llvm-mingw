@@ -43,16 +43,16 @@ jobs:
         uses: shxrklol/action-auto-releases-n20@v1.1
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          automatic_release_tag: "18.1.0-rc1"
+          automatic_release_tag: "18.1.0-rc2"
           prerelease: false
-          title: 18.1.0-rc1
+          title: 18.1.0-rc2
 
       - name: upload_packages
         id: upload_release
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: 18.1.0-rc1.tar.xz
-          tag: 18.1.0-rc1
+          file: 18.1.0-rc2.tar.xz
+          tag: 18.1.0-rc2
           overwrite: true
           file_glob: true
