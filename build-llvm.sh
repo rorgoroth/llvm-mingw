@@ -16,7 +16,7 @@
 
 set -e
 
-: ${LLVM_VERSION:=llvmorg-18.1.0-rc2}
+: ${LLVM_VERSION:=llvmorg-17.0.6}
 ASSERTS=OFF
 unset HOST
 BUILDDIR="build"
@@ -271,7 +271,7 @@ fi
 
 cd llvm-project/llvm
 
-PROJECTS="clang;lld"
+PROJECTS="clang;lld;polly"
 if [ -n "$LLDB" ]; then
     PROJECTS="$PROJECTS;lldb"
 fi
@@ -297,6 +297,7 @@ cmake \
     -DLLVM_INCLUDE_TESTS=OFF \
     -DLLVM_INSTALL_TOOLCHAIN_ONLY=$TOOLCHAIN_ONLY \
     -DLLVM_LINK_LLVM_DYLIB=$LINK_DYLIB \
+    -DLLVM_POLLY_LINK_INTO_TOOLS=ON \
     -DLLVM_TARGETS_TO_BUILD="X86" \
     -DLLVM_TOOLCHAIN_TOOLS="llvm-ar;llvm-ranlib;llvm-objdump;llvm-rc;llvm-cvtres;llvm-nm;llvm-strings;llvm-readobj;llvm-dlltool;llvm-pdbutil;llvm-objcopy;llvm-strip;llvm-cov;llvm-profdata;llvm-addr2line;llvm-symbolizer;llvm-windres;llvm-ml;llvm-readelf;llvm-size;llvm-cxxfilt" \
     ${HOST+-DLLVM_HOST_TRIPLE=$HOST} \
