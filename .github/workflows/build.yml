@@ -49,7 +49,7 @@ jobs:
 
       - name: upload_packages
         id: upload_release
-        uses: svenstaro/upload-release-action@v2
+        uses: svenstaro/upload-release-action@2.9.0
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: 17.0.6-r3.tar.xz
