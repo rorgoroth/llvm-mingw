@@ -12,4 +12,4 @@ git clean -xdf
 cp -v llvm-x86_64-w64-mingw32/x86_64-w64-mingw32/lib/libc++.a \
       llvm-x86_64-w64-mingw32/x86_64-w64-mingw32/lib/libstdc++.a
 
-apack 17.0.6-r3.tar.xz llvm-x86_64-w64-mingw32
+apack 18.1.0.tar.xz llvm-x86_64-w64-mingw32
