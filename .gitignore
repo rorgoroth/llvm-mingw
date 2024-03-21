@@ -6,3 +6,5 @@
 /cpython*
 /python-native
 /toolchain
+llvm-x86_64-w64-mingw32
+*.tar.xz

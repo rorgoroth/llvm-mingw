@@ -57,7 +57,7 @@ mkdir -p "$PREFIX"
 PREFIX="$(cd "$PREFIX" && pwd)"
 export PATH="$PREFIX/bin:$PATH"
 
-: ${ARCHS:=${TOOLCHAIN_ARCHS-i686 x86_64 armv7 aarch64}}
+: ${ARCHS:=${TOOLCHAIN_ARCHS-x86_64}}
 
 ANY_ARCH=$(echo $ARCHS | awk '{print $1}')
 CLANG_RESOURCE_DIR="$("$PREFIX/bin/$ANY_ARCH-w64-mingw32-clang" --print-resource-dir)"
@@ -115,6 +115,7 @@ for arch in $ARCHS; do
         -DCOMPILER_RT_DEFAULT_TARGET_ONLY=TRUE \
         -DCOMPILER_RT_USE_BUILTINS_LIBRARY=TRUE \
         -DCOMPILER_RT_BUILD_BUILTINS=$BUILD_BUILTINS \
+        -DCOMPILER_RT_STATIC_CXX_LIBRARY=TRUE \
         -DCOMPILER_RT_EXCLUDE_ATOMIC_BUILTIN=FALSE \
         -DLLVM_CONFIG_PATH="" \
         -DCMAKE_FIND_ROOT_PATH=$PREFIX/$arch-w64-mingw32 \

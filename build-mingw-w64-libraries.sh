@@ -44,7 +44,7 @@ unset CC
 : ${CORES:=$(nproc 2>/dev/null)}
 : ${CORES:=$(sysctl -n hw.ncpu 2>/dev/null)}
 : ${CORES:=4}
-: ${ARCHS:=${TOOLCHAIN_ARCHS-i686 x86_64 armv7 aarch64}}
+: ${ARCHS:=${TOOLCHAIN_ARCHS-x86_64}}
 
 if [ ! -d mingw-w64 ] || [ -n "$SYNC" ]; then
     CHECKOUT_ONLY=1 ./build-mingw-w64.sh
@@ -58,9 +58,13 @@ for lib in winpthreads winstorecompat; do
         mkdir -p build-$arch
         cd build-$arch
         arch_prefix="$PREFIX/$arch-w64-mingw32"
-        ../configure --host=$arch-w64-mingw32 --prefix="$arch_prefix" --libdir="$arch_prefix/lib" \
-            CFLAGS="$USE_CFLAGS" \
-            CXXFLAGS="$USE_CFLAGS"
+        ../configure --host=$arch-w64-mingw32 \
+                     --prefix="$arch_prefix" \
+                     --libdir="$arch_prefix/lib" \
+                     --disable-shared \
+                     --enable-static \
+                     CFLAGS="$USE_CFLAGS" \
+                     CXXFLAGS="$USE_CFLAGS"
         make -j$CORES
         make install
         cd ..
