@@ -22,37 +22,29 @@ jobs:
 
       - name: add_packages
         run: |
-          apk add alpine-sdk atool axel bash clang coreutils cmake curl gawk git libc++ linux-headers lld make openssh openssl python3 samurai wget xz
+          apk add alpine-sdk atool axel bash clang coreutils cmake curl gawk git libc++ linux-headers lld make openssh openssl python3 samurai wget zstd
         shell: alpine.sh --root {0}
 
       - name: run_build
         run: |
           sh build.sh
-          md5sum *.tar.xz > md5.txt
         shell: alpine.sh {0}
-
-      - name: upload_md5
-        uses: actions/upload-artifact@master
-        if: always()
-        with:
-          name: md5sum
-          path: md5.txt
 
       - name: create_release_tag
         id: create_release
         uses: shxrklol/action-auto-releases-n20@v1.1
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          automatic_release_tag: "18.1.2-r3"
+          automatic_release_tag: "18.1.2-r4"
           prerelease: false
-          title: 18.1.2-r3
+          title: 18.1.2-r4
 
       - name: upload_packages
         id: upload_release
         uses: svenstaro/upload-release-action@2.9.0
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: 18.1.2-r3.tar.xz
-          tag: 18.1.2-r3
+          file: 18.1.2-r4.tar.zst
+          tag: 18.1.2-r4
           overwrite: true
           file_glob: true
