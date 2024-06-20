@@ -74,8 +74,6 @@ for i in amdgpu-arch bugpoint c-index-test clang-* clangd clangd-* darwin-debug 
         ;;
     clangd)
         ;;
-    clang-scan-deps)
-        ;;
     clang-tidy)
         ;;
     clang-target-wrapper*)
@@ -126,34 +124,4 @@ if [ -n "$EXEEXT" ]; then
 fi
 cd ..
 rm -rf libexec
-cd share
-cd clang
-for i in *; do
-    case $i in
-    clang-format*)
-        ;;
-    *)
-        rm -rf $i
-        ;;
-    esac
-done
-cd ..
-rm -rf opt-viewer scan-build scan-view
-rm -rf man/man1/scan-build*
-cd ..
-cd include
-rm -rf clang clang-c clang-tidy lld llvm llvm-c lldb
-cd ..
-cd lib
-rm -f *.dll.a
-rm -f lib*.a
-for i in *.so* *.dylib* cmake; do
-    case $i in
-    liblldb*|libclang-cpp*|libLLVM*)
-        ;;
-    *)
-        rm -rf $i
-        ;;
-    esac
-done
-cd ..
+

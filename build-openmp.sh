@@ -50,20 +50,6 @@ fi
 
 cd llvm-project/openmp
 
-if command -v ninja >/dev/null; then
-    CMAKE_GENERATOR="Ninja"
-else
-    : ${CORES:=$(nproc 2>/dev/null)}
-    : ${CORES:=$(sysctl -n hw.ncpu 2>/dev/null)}
-    : ${CORES:=4}
-
-    case $(uname) in
-    MINGW*)
-        CMAKE_GENERATOR="MSYS Makefiles"
-        ;;
-    esac
-fi
-
 for arch in $ARCHS; do
     CMAKEFLAGS=""
     case $arch in
@@ -78,7 +64,7 @@ for arch in $ARCHS; do
     [ -n "$NO_RECONF" ] || rm -rf CMake*
 
     cmake \
-        ${CMAKE_GENERATOR+-G} "$CMAKE_GENERATOR" \
+        -G Ninja \
         -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_INSTALL_PREFIX="$PREFIX/$arch-w64-mingw32" \
         -DCMAKE_C_COMPILER=$arch-w64-mingw32-clang \
@@ -93,7 +79,7 @@ for arch in $ARCHS; do
         -DCMAKE_CXX_FLAGS_INIT="$CFGUARD_CFLAGS" \
         $CMAKEFLAGS \
         ..
-    cmake --build . ${CORES:+-j${CORES}}
+    cmake --build .
     cmake --install .
     rm -f $PREFIX/$arch-w64-mingw32/bin/*iomp5md*
     rm -f $PREFIX/$arch-w64-mingw32/lib/*iomp5md*

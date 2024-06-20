@@ -60,27 +60,13 @@ LLVM_PATH="$(pwd)/llvm"
 
 cd runtimes
 
-if command -v ninja >/dev/null; then
-    CMAKE_GENERATOR="Ninja"
-else
-    : ${CORES:=$(nproc 2>/dev/null)}
-    : ${CORES:=$(sysctl -n hw.ncpu 2>/dev/null)}
-    : ${CORES:=4}
-
-    case $(uname) in
-    MINGW*)
-        CMAKE_GENERATOR="MSYS Makefiles"
-        ;;
-    esac
-fi
-
 for arch in $ARCHS; do
     [ -z "$CLEAN" ] || rm -rf build-$arch
     mkdir -p build-$arch
     cd build-$arch
     [ -n "$NO_RECONF" ] || rm -rf CMake*
     cmake \
-        ${CMAKE_GENERATOR+-G} "$CMAKE_GENERATOR" \
+        -G Ninja \
         -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_INSTALL_PREFIX="$PREFIX/$arch-w64-mingw32" \
         -DCMAKE_C_COMPILER=$arch-w64-mingw32-clang \
@@ -93,28 +79,28 @@ for arch in $ARCHS; do
         -DCMAKE_AR="$PREFIX/bin/llvm-ar" \
         -DCMAKE_RANLIB="$PREFIX/bin/llvm-ranlib" \
         -DLLVM_ENABLE_RUNTIMES="libunwind;libcxxabi;libcxx" \
-        -DLIBUNWIND_USE_COMPILER_RT=TRUE \
-        -DLIBUNWIND_ENABLE_SHARED=$BUILD_SHARED \
-        -DLIBUNWIND_ENABLE_STATIC=$BUILD_STATIC \
-        -DLIBCXX_USE_COMPILER_RT=ON \
-        -DLIBCXX_ENABLE_SHARED=$BUILD_SHARED \
-        -DLIBCXX_ENABLE_STATIC=$BUILD_STATIC \
-        -DLIBCXX_ENABLE_STATIC_ABI_LIBRARY=TRUE \
-        -DLIBCXX_CXX_ABI=libcxxabi \
-        -DLIBCXX_LIBDIR_SUFFIX="" \
-        -DLIBCXX_INCLUDE_TESTS=FALSE \
-        -DLIBCXX_INSTALL_MODULES=ON \
-        -DLIBCXX_INSTALL_MODULES_DIR="$PREFIX/share/libc++/v1" \
-        -DLIBCXX_ENABLE_ABI_LINKER_SCRIPT=FALSE \
-        -DLIBCXXABI_USE_COMPILER_RT=ON \
-        -DLIBCXXABI_USE_LLVM_UNWINDER=ON \
-        -DLIBCXXABI_ENABLE_SHARED=OFF \
-        -DLIBCXXABI_LIBDIR_SUFFIX="" \
         -DCMAKE_C_FLAGS_INIT="$CFGUARD_CFLAGS" \
         -DCMAKE_CXX_FLAGS_INIT="$CFGUARD_CFLAGS" \
+        -DLIBCXX_CXX_ABI=libcxxabi \
+        -DLIBCXX_ENABLE_ABI_LINKER_SCRIPT=FALSE \
+        -DLIBCXX_ENABLE_SHARED=$BUILD_SHARED \
+        -DLIBCXX_ENABLE_STATIC_ABI_LIBRARY=TRUE \
+        -DLIBCXX_ENABLE_STATIC=$BUILD_STATIC \
+        -DLIBCXX_HAS_WIN32_THREAD_API=ON \
+        -DLIBCXX_INCLUDE_TESTS=FALSE \
+        -DLIBCXX_LIBDIR_SUFFIX="" \
+        -DLIBCXX_USE_COMPILER_RT=ON \
+        -DLIBCXXABI_ENABLE_SHARED=OFF \
+        -DLIBCXXABI_HAS_WIN32_THREAD_API=ON \
+        -DLIBCXXABI_LIBDIR_SUFFIX="" \
+        -DLIBCXXABI_USE_COMPILER_RT=ON \
+        -DLIBCXXABI_USE_LLVM_UNWINDER=ON \
+        -DLIBUNWIND_ENABLE_SHARED=$BUILD_SHARED \
+        -DLIBUNWIND_ENABLE_STATIC=$BUILD_STATIC \
+        -DLIBUNWIND_USE_COMPILER_RT=TRUE \
         ..
 
-    cmake --build . ${CORES:+-j${CORES}}
+    cmake --build .
     cmake --install .
     cd ..
 done

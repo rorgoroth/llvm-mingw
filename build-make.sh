@@ -18,7 +18,8 @@ set -e
 
 unset HOST
 
-: ${MAKE_VERSION:=4.4.1}
+: ${$MAKE_VERSION:=4.4.1}
+: ${ARCHS:=${TOOLCHAIN_ARCHS-x86_64}}
 
 while [ $# -gt 0 ]; do
     case "$1" in
@@ -42,7 +43,6 @@ PREFIX="$(cd "$PREFIX" && pwd)"
 : ${CORES:=$(nproc 2>/dev/null)}
 : ${CORES:=$(sysctl -n hw.ncpu 2>/dev/null)}
 : ${CORES:=4}
-: ${ARCHS:=${TOOLCHAIN_ARCHS-x86_64}}
 
 download() {
     if command -v wget >/dev/null; then
