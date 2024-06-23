@@ -119,20 +119,6 @@ fi
 
 [ -z "$CHECKOUT_ONLY" ] || exit 0
 
-if [ -n "$HOST" ]; then
-    case $HOST in
-    *-mingw32)
-        TARGET_WINDOWS=1
-        ;;
-    esac
-else
-    case $(uname) in
-    MINGW*)
-        TARGET_WINDOWS=1
-        ;;
-    esac
-fi
-
 CMAKEFLAGS="$LLVM_CMAKEFLAGS"
 
 if [ -n "$HOST" ]; then
@@ -189,17 +175,6 @@ elif [ -n "$STAGE2" ]; then
     CMAKEFLAGS="$CMAKEFLAGS -DLLVM_USE_LINKER=lld"
 fi
 
-if [ -n "$TARGET_WINDOWS" ]; then
-    # Custom, llvm-mingw specific defaults. We normally set these in
-    # the frontend wrappers, but this makes sure they are enabled by
-    # default if that wrapper is bypassed as well.
-    CMAKEFLAGS="$CMAKEFLAGS -DCLANG_DEFAULT_RTLIB=compiler-rt"
-    CMAKEFLAGS="$CMAKEFLAGS -DCLANG_DEFAULT_UNWINDLIB=libunwind"
-    CMAKEFLAGS="$CMAKEFLAGS -DCLANG_DEFAULT_CXX_STDLIB=libc++"
-    CMAKEFLAGS="$CMAKEFLAGS -DCLANG_DEFAULT_LINKER=lld"
-    CMAKEFLAGS="$CMAKEFLAGS -DLLD_DEFAULT_LD_LLD_IS_MINGW=ON"
-fi
-
 if [ -n "$LTO" ]; then
     CMAKEFLAGS="$CMAKEFLAGS -DLLVM_ENABLE_LTO=$LTO"
 fi
@@ -229,8 +204,8 @@ cmake \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_C_COMPILER=clang \
     -DCMAKE_CXX_COMPILER=clang++ \
-    -DLLVM_USE_LINKER=lld \
     -DBUILD_SHARED_LIBS=OFF \
+    -DCLANG_DEFAULT_CXX_STDLIB=libc++ \
     -DCLANG_DEFAULT_LINKER=lld \
     -DCLANG_DEFAULT_RTLIB=compiler-rt \
     -DCLANG_DEFAULT_UNWINDLIB=libunwind \
@@ -353,6 +328,7 @@ cmake \
     -DLLVM_TOOL_VERIFY_USELISTORDER_BUILD=OFF \
     -DLLVM_TOOL_VFABI_DEMANGLE_FUZZER_BUILD=OFF \
     -DLLVM_TOOL_XCODE_TOOLCHAIN_BUILD=OFF \
+    -DLLVM_USE_LINKER=lld \
     -DLLVM_TOOLCHAIN_TOOLS="llvm-ar;llvm-ranlib;llvm-objdump;llvm-rc;llvm-cvtres;llvm-nm;llvm-strings;llvm-readobj;llvm-dlltool;llvm-pdbutil;llvm-objcopy;llvm-strip;llvm-cov;llvm-profdata;llvm-addr2line;llvm-symbolizer;llvm-windres;llvm-ml;llvm-readelf;llvm-size;llvm-cxxfilt" \
     ${HOST+-DLLVM_HOST_TRIPLE=$HOST} \
     $CMAKEFLAGS \
