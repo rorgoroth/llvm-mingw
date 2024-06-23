@@ -109,7 +109,7 @@ cd mingw-w64-tools/gendef
 mkdir -p build${CROSS_NAME}
 cd build${CROSS_NAME}
 ../configure --prefix="$PREFIX" $CONFIGFLAGS
-$MAKE -j$CORES
+$make -j$CORES
 $MAKE install-strip
 mkdir -p "$PREFIX/share/gendef"
 install -m644 ../COPYING "$PREFIX/share/gendef"
@@ -118,7 +118,7 @@ cd ../../widl
 mkdir -p build${CROSS_NAME}
 cd build${CROSS_NAME}
 ../configure --prefix="$PREFIX" --target=$ANY_ARCH-w64-mingw32 --with-widl-includedir="$INCLUDEDIR" $CONFIGFLAGS
-$MAKE -j$CORES
+$make -j$CORES
 $MAKE install-strip
 mkdir -p "$PREFIX/share/widl"
 install -m644 ../../../COPYING "$PREFIX/share/widl"

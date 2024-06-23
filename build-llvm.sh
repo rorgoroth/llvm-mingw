@@ -56,9 +56,6 @@ while [ $# -gt 0 ]; do
     --host=*)
         HOST="${1#*=}"
         ;;
-    --with-python)
-        WITH_PYTHON=1
-        ;;
     --disable-lldb)
         unset LLDB
         ;;
@@ -74,7 +71,7 @@ done
 BUILDDIR="$BUILDDIR$ASSERTSSUFFIX"
 if [ -z "$CHECKOUT_ONLY" ]; then
     if [ -z "$PREFIX" ]; then
-        echo $0 [--enable-asserts] [--stage2] [--thinlto] [--lto] [--disable-dylib] [--full-llvm] [--with-python] [--disable-lldb] [--disable-clang-tools-extra] [--host=triple] dest
+        echo $0 [--enable-asserts] [--stage2] [--thinlto] [--lto] [--disable-dylib] [--full-llvm] [--disable-lldb] [--disable-clang-tools-extra] [--host=triple] dest
         exit 1
     fi
 
@@ -184,25 +181,6 @@ if [ -n "$HOST" ]; then
 
     BUILDDIR=$BUILDDIR-$HOST
 
-    if [ -n "$WITH_PYTHON" ] && [ -n "$TARGET_WINDOWS" ]; then
-        # The python3-config script requires executing with bash. It outputs
-        # an extra trailing space, which the extra 'echo' layer gets rid of.
-        EXT_SUFFIX="$(echo $(bash $PREFIX/python/bin/python3-config --extension-suffix))"
-        PYTHON_RELATIVE_PATH="$(cd "$PREFIX" && echo python/lib/python*/site-packages)"
-        PYTHON_INCLUDE_DIR="$(echo $PREFIX/python/include/python*)"
-        PYTHON_LIB="$(echo $PREFIX/python/lib/libpython3.*.dll.a)"
-        CMAKEFLAGS="$CMAKEFLAGS -DLLDB_ENABLE_PYTHON=ON"
-        CMAKEFLAGS="$CMAKEFLAGS -DPYTHON_HOME=$PREFIX/python"
-        CMAKEFLAGS="$CMAKEFLAGS -DLLDB_PYTHON_HOME=../python"
-        # Relative to the lldb install root
-        CMAKEFLAGS="$CMAKEFLAGS -DLLDB_PYTHON_RELATIVE_PATH=$PYTHON_RELATIVE_PATH"
-        # Relative to LLDB_PYTHON_HOME
-        CMAKEFLAGS="$CMAKEFLAGS -DLLDB_PYTHON_EXE_RELATIVE_PATH=bin/python3.exe"
-        CMAKEFLAGS="$CMAKEFLAGS -DLLDB_PYTHON_EXT_SUFFIX=$EXT_SUFFIX"
-
-        CMAKEFLAGS="$CMAKEFLAGS -DPython3_INCLUDE_DIRS=$PYTHON_INCLUDE_DIR"
-        CMAKEFLAGS="$CMAKEFLAGS -DPython3_LIBRARIES=$PYTHON_LIB"
-    fi
 elif [ -n "$STAGE2" ]; then
     # Build using an earlier built and installed clang in the target directory
     export PATH="$PREFIX/bin:$PATH"

@@ -78,7 +78,7 @@ while [ $# -gt 0 ]; do
     shift
 done
 if [ -z "$PREFIX" ]; then
-    echo "$0 [--enable-asserts] [--disable-dylib] [--full-llvm] [--with-python] [--disable-lldb] [--disable-lldb-mi] [--disable-clang-tools-extra] [--host=triple] [--with-default-win32-winnt=0x601] [--with-default-msvcrt=ucrt] [--enable-cfguard|--disable-cfguard] [--no-runtimes] [--no-tools] [--wipe-runtimes] dest"
+    echo "$0 [--enable-asserts] [--disable-dylib] [--full-llvm] [--disable-lldb] [--disable-lldb-mi] [--disable-clang-tools-extra] [--host=triple] [--with-default-win32-winnt=0x601] [--with-default-msvcrt=ucrt] [--enable-cfguard|--disable-cfguard] [--no-runtimes] [--no-tools] [--wipe-runtimes] dest"
     exit 1
 fi
 

@@ -134,7 +134,7 @@ for arch in $ARCHS; do
     esac
     FLAGS="$FLAGS --with-default-msvcrt=$DEFAULT_MSVCRT"
     ../configure --host=$arch-w64-mingw32 --prefix="$PREFIX/$arch-w64-mingw32" $FLAGS $CFGUARD_FLAGS $CRT_CONFIG_FLAGS
-    $MAKE -j$CORES
+    $make -j$CORES
     $MAKE install
     cd ..
 done

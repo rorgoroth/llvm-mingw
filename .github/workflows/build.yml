@@ -22,7 +22,7 @@ jobs:
 
       - name: add_packages
         run: |
-          apk add alpine-sdk atool axel bash clang coreutils cmake curl gawk git libc++ linux-headers lld make openssh openssl python3 samurai wget zstd
+          apk add alpine-sdk atool axel bash clang coreutils cmake curl gawk git libc++ linux-headers lld make openssh openssl samurai wget zstd
         shell: alpine.sh --root {0}
 
       - name: run_build
