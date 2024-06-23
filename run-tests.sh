@@ -34,14 +34,6 @@ if command -v gmake >/dev/null; then
     MAKE=gmake
 fi
 
-case $(uname -s) in
-Darwin)
-    ;;
-*)
-    # Assume everything except macOS has got GNU make >= 4.0
-    MAKEOPTS="-O"
-esac
-
 cd test
 
 HAVE_UWP=1
