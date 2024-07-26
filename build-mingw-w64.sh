@@ -18,7 +18,7 @@ set -e
 
 : ${DEFAULT_WIN32_WINNT:=0x0A00}
 : ${DEFAULT_MSVCRT:=ucrt}
-: ${MINGW_W64_VERSION:=7c9cfe6708cafc83c14a2654308b2db62b126eae}
+: ${MINGW_W64_VERSION:=527522b8b0f7b8c49760acb75fc0c6c9ce0981ee}
 # https://github.com/mingw-w64/mingw-w64
 
 CFGUARD_FLAGS="--enable-cfguard"
@@ -134,7 +134,7 @@ for arch in $ARCHS; do
     esac
     FLAGS="$FLAGS --with-default-msvcrt=$DEFAULT_MSVCRT"
     ../configure --host=$arch-w64-mingw32 --prefix="$PREFIX/$arch-w64-mingw32" $FLAGS $CFGUARD_FLAGS $CRT_CONFIG_FLAGS
-    $make -j$CORES
+    $MAKE -j$CORES
     $MAKE install
     cd ..
 done

@@ -16,7 +16,7 @@
 
 set -e
 
-: ${LLVM_VERSION:=18.1.8}
+: ${LLVM_VERSION:=19.1.0-rc1}
 ASSERTS=OFF
 unset HOST
 BUILDDIR="build"
@@ -135,6 +135,7 @@ if [ -n "$HOST" ]; then
         exit 1
         ;;
     esac
+fi
 
     native=""
     for dir in llvm-project/llvm/build/bin llvm-project/llvm/build-asserts/bin; do
