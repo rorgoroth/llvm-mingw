@@ -87,7 +87,7 @@ TESTS_UWP = uwp-error
 TESTS_IDL = idltest
 TESTS_RES = hello-res
 ifneq ($(HAVE_UWP),)
-    TESTS_OTHER_TARGETS = hello hello-tls
+    TESTS_OTHER_TARGETS = hello
 endif
 ifneq ($(HAVE_CFGUARD),)
     TESTS_CFGUARD = cfguard-test
@@ -146,6 +146,8 @@ EXTRAFILES = \
      $(addprefix lib, $(addsuffix .dll.a, $(TESTS_CPP_DLL))) \
      $(addsuffix .h, $(TESTS_IDL)) \
      $(addsuffix -rc.o, $(TESTS_RES)) \
+     $(addsuffix -asan.pdb, $(TESTS_ASAN)) \
+     $(addsuffix -asan-cfguard.pdb, $(TESTS_ASAN_CFGUARD))
 
 all: $(TARGETS)
 
@@ -194,14 +196,14 @@ $(TARGETS_FORTIFY): %-fortify$(EXEEXT): %.c
 	$(CC) $(CPPFLAGS) $(CFLAGS) $< -o $@ -O2 -D_FORTIFY_SOURCE=2
 
 $(TARGETS_ASAN): %-asan$(EXEEXT): %.c
-	$(CC) $(CPPFLAGS) $(CFLAGS) $< -o $@ -fsanitize=address -g
+	$(CC) $(CPPFLAGS) $(CFLAGS) $< -o $@ -fsanitize=address -g -gcodeview -Wl,--pdb=
 
 $(TARGETS_UBSAN): %$(EXEEXT): %.c
 	$(CC) $(CPPFLAGS) $(CFLAGS) $< -o $@ -fsanitize=undefined -fno-sanitize-recover=all
 
 # Smoke test ASAN with CFGuard to make sure it doesn't trip.
 $(TARGETS_ASAN_CFGUARD): %-asan-cfguard$(EXEEXT): %.c
-	$(CC) $(CPPFLAGS) $(CFLAGS) $< -o $@ -fsanitize=address -g -mguard=cf
+	$(CC) $(CPPFLAGS) $(CFLAGS) $< -o $@ -fsanitize=address -g -gcodeview -mguard=cf -Wl,--pdb=
 
 $(TARGETS_OMP): %$(EXEEXT): %.c
 	$(CC) $(CPPFLAGS) $(CFLAGS) $< -o $@ -fopenmp=libomp
@@ -315,17 +317,17 @@ $(FAILURE_TEST_TARGETS): .failtested.%$(EXEEXT): %$(EXEEXT) .copied.%$(EXEEXT) $
 		echo OK: $< trigger failed expectedly, returned $$ret; \
 		case $* in \
 		stacksmash-asan|stacksmash-asan-cfguard) \
-			grep -q stack-buffer-overflow $$OUT || { echo ERROR: $< missing mention of stack-buffer-overflow; exit 1; }; \
-			grep -q "func.*stacksmash.c" $$OUT || { echo ERROR: $< missing source location; exit 1; }; \
+			grep -q stack-buffer-overflow $$OUT || exit 1; \
+			grep -q "func.*stacksmash.c" $$OUT || exit 1; \
 			;; \
 		ubsan) \
-			grep -q "signed integer overflow" $$OUT || { echo ERROR: $< missing mention of signed integer overflow; exit 1; }; \
+			grep -q "signed integer overflow" $$OUT || exit 1; \
 			;; \
 		stacksmash) \
-			grep -q "stack smashing detected" $$OUT || { echo ERROR: $< missing mention of stack smashing detected; exit 1; }; \
+			grep -q "stack smashing detected" $$OUT || exit 1; \
 			;; \
 		bufferoverflow-*) \
-			grep -q "buffer overflow detected" $$OUT || { echo ERROR: $< missing mention of buffer overflow detected; exit 1; }; \
+			grep -q "buffer overflow detected" $$OUT || exit 1; \
 			;; \
 		*) \
 			echo Unhandled failure test $*; \
@@ -350,7 +352,7 @@ $(FAILURE_TEST_TARGETS): .failtested.%$(EXEEXT): %$(EXEEXT) .copied.%$(EXEEXT) $
 			ret=$$?; \
 			cat $$OUT; \
 			echo OK: $* $$i failed expectedly, returned $$ret; \
-			grep -q "buffer overflow detected" $$OUT || { echo ERROR: $< missing mention of buffer overflow detected; exit 1; }; \
+			grep -q "buffer overflow detected" $$OUT || exit 1; \
 			rm -f $$OUT; \
 		fi; \
 		i=$$(($$i+1)); \

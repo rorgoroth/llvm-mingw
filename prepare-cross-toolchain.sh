@@ -24,7 +24,7 @@ SRC="$1"
 DEST="$2"
 CROSS_ARCH="$3"
 
-: ${ARCHS:=${TOOLCHAIN_ARCHS-i686 x86_64 armv7 aarch64}}
+: ${ARCHS:=${TOOLCHAIN_ARCHS-x86_64}}
 
 CLANG_RESOURCE_DIR="$("$SRC/bin/clang" --print-resource-dir)"
 CLANG_VERSION=$(basename "$CLANG_RESOURCE_DIR")
@@ -66,7 +66,3 @@ for arch in $ARCHS; do
         cp -a $SRC/$arch-w64-mingw32/$subdir $DEST/$arch-w64-mingw32
     done
 done
-
-# Copy the libc++ module sources
-rm -rf $DEST/share/libc++
-cp -a $SRC/share/libc++ $DEST/share

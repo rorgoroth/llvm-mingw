@@ -51,20 +51,6 @@ if [ -n "$SYNC" ] || [ -n "$CHECKOUT" ]; then
     cd ..
 fi
 
-if command -v ninja >/dev/null; then
-    CMAKE_GENERATOR="Ninja"
-else
-    : ${CORES:=$(nproc 2>/dev/null)}
-    : ${CORES:=$(sysctl -n hw.ncpu 2>/dev/null)}
-    : ${CORES:=4}
-
-    case $(uname) in
-    MINGW*)
-        CMAKE_GENERATOR="MSYS Makefiles"
-        ;;
-    esac
-fi
-
 export LLVM_DIR="$PREFIX"
 
 # Try to find/guess the builddir under the llvm buildtree next by.
@@ -109,29 +95,6 @@ if [ -n "$HOST" ]; then
     CMAKEFLAGS="$CMAKEFLAGS -DCMAKE_FIND_ROOT_PATH_MODE_PACKAGE=ONLY"
 fi
 
-if [ -n "$MACOS_REDIST" ]; then
-    : ${MACOS_REDIST_ARCHS:=arm64 x86_64}
-    : ${MACOS_REDIST_VERSION:=10.9}
-    ARCH_LIST=""
-    NATIVE=
-    for arch in $MACOS_REDIST_ARCHS; do
-        if [ -n "$ARCH_LIST" ]; then
-            ARCH_LIST="$ARCH_LIST;"
-        fi
-        ARCH_LIST="$ARCH_LIST$arch"
-        if [ "$(uname -m)" = "$arch" ]; then
-            NATIVE=1
-        fi
-    done
-    CMAKEFLAGS="$CMAKEFLAGS -DCMAKE_OSX_ARCHITECTURES=$ARCH_LIST"
-    CMAKEFLAGS="$CMAKEFLAGS -DCMAKE_OSX_DEPLOYMENT_TARGET=$MACOS_REDIST_VERSION"
-    if [ -z "$NATIVE" ]; then
-        # If we're not building for the native arch, flag to CMake that we're
-        # cross compiling.
-        CMAKEFLAGS="$CMAKEFLAGS -DCMAKE_SYSTEM_NAME=Darwin"
-    fi
-fi
-
 cd lldb-mi
 
 [ -z "$CLEAN" ] || rm -rf $BUILDDIR
@@ -139,11 +102,11 @@ mkdir -p $BUILDDIR
 cd $BUILDDIR
 [ -n "$NO_RECONF" ] || rm -rf CMake*
 cmake \
-    ${CMAKE_GENERATOR+-G} "$CMAKE_GENERATOR" \
+    -G Ninja \
     -DCMAKE_INSTALL_PREFIX="$PREFIX" \
     -DCMAKE_BUILD_TYPE=Release \
     $CMAKEFLAGS \
     ..
 
-cmake --build . ${CORES:+-j${CORES}}
+cmake --build .
 cmake --install . --strip

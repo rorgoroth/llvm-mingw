@@ -56,8 +56,8 @@ fi
 : ${CORES:=$(nproc 2>/dev/null)}
 : ${CORES:=$(sysctl -n hw.ncpu 2>/dev/null)}
 : ${CORES:=4}
-: ${ARCHS:=${TOOLCHAIN_ARCHS-i686 x86_64 armv7 aarch64}}
-: ${TARGET_OSES:=${TOOLCHAIN_TARGET_OSES-mingw32 mingw32uwp}}
+: ${ARCHS:=${TOOLCHAIN_ARCHS-x86_64}}
+: ${TARGET_OSES:=${TOOLCHAIN_TARGET_OSES-mingw32}}
 
 if [ -n "$HOST" ]; then
     CONFIGFLAGS="$CONFIGFLAGS --host=$HOST"
@@ -74,29 +74,7 @@ else
         ;;
     esac
 fi
-if [ -n "$MACOS_REDIST" ]; then
-    if [ -z "$CFLAGS" ]; then
-        CFLAGS="-g -O2"
-    fi
-    : ${MACOS_REDIST_ARCHS:=arm64 x86_64}
-    : ${MACOS_REDIST_VERSION:=10.9}
-    NONNATIVE_ARCH=
-    for arch in $MACOS_REDIST_ARCHS; do
-        CFLAGS="$CFLAGS -arch $arch"
-        if [ "$(uname -m)" != "$arch" ]; then
-            case $arch in
-            arm64) NONNATIVE_ARCH=aarch64 ;;
-            *)     NONNATIVE_ARCH=$arch ;;
-            esac
-        fi
-    done
-    if [ -n "$NONNATIVE_ARCH" ]; then
-        # If we're not building for the native arch, flag that we're
-        # cross compiling.
-        CONFIGFLAGS="$CONFIGFLAGS --host=$NONNATIVE_ARCH-apple-darwin"
-    fi
-    export CFLAGS="$CFLAGS -mmacosx-version-min=$MACOS_REDIST_VERSION"
-fi
+
 if [ -n "$SKIP_INCLUDE_TRIPLET_PREFIX" ]; then
     INCLUDEDIR="$PREFIX/include"
 else

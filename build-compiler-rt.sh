@@ -18,7 +18,7 @@ set -e
 
 SRC_DIR=../lib/builtins
 BUILD_SUFFIX=
-BUILD_BUILTINS=TRUE
+BUILD_BUILTINS=FALSE
 ENABLE_CFGUARD=1
 CFGUARD_CFLAGS="-mguard=cf"
 
@@ -57,7 +57,7 @@ mkdir -p "$PREFIX"
 PREFIX="$(cd "$PREFIX" && pwd)"
 export PATH="$PREFIX/bin:$PATH"
 
-: ${ARCHS:=${TOOLCHAIN_ARCHS-i686 x86_64 armv7 aarch64}}
+: ${ARCHS:=${TOOLCHAIN_ARCHS-x86_64}}
 
 ANY_ARCH=$(echo $ARCHS | awk '{print $1}')
 CLANG_RESOURCE_DIR="$("$PREFIX/bin/$ANY_ARCH-w64-mingw32-clang" --print-resource-dir)"
@@ -66,39 +66,26 @@ if [ ! -d llvm-project/compiler-rt ] || [ -n "$SYNC" ]; then
     CHECKOUT_ONLY=1 ./build-llvm.sh
 fi
 
-if command -v ninja >/dev/null; then
-    CMAKE_GENERATOR="Ninja"
-else
-    : ${CORES:=$(nproc 2>/dev/null)}
-    : ${CORES:=$(sysctl -n hw.ncpu 2>/dev/null)}
-    : ${CORES:=4}
-
-    case $(uname) in
-    MINGW*)
-        CMAKE_GENERATOR="MSYS Makefiles"
-        ;;
-    esac
-fi
-
 cd llvm-project/compiler-rt
 
-INSTALL_PREFIX="$CLANG_RESOURCE_DIR"
-
-if [ -h "$CLANG_RESOURCE_DIR/include" ]; then
-    # Symlink to system headers; use a staging directory in case parts
-    # of the resource dir are immutable
-    WORKDIR="$(mktemp -d)"; trap "rm -rf $WORKDIR" 0
-    INSTALL_PREFIX="$WORKDIR/install"
-fi
-
-
 for arch in $ARCHS; do
+    if [ -n "$SANITIZERS" ]; then
+        case $arch in
+        i686|x86_64)
+            # Sanitizers on windows only support x86.
+            ;;
+        *)
+            continue
+            ;;
+        esac
+    fi
+
     [ -z "$CLEAN" ] || rm -rf build-$arch$BUILD_SUFFIX
     mkdir -p build-$arch$BUILD_SUFFIX
     cd build-$arch$BUILD_SUFFIX
     [ -n "$NO_RECONF" ] || rm -rf CMake*
     cmake \
-        ${CMAKE_GENERATOR+-G} "$CMAKE_GENERATOR" \
+        -G Ninja \
         -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_INSTALL_PREFIX="$CLANG_RESOURCE_DIR" \
         -DCMAKE_C_COMPILER=$arch-w64-mingw32-clang \
@@ -112,39 +99,24 @@ for arch in $ARCHS; do
         -DCOMPILER_RT_DEFAULT_TARGET_ONLY=TRUE \
         -DCOMPILER_RT_USE_BUILTINS_LIBRARY=TRUE \
         -DCOMPILER_RT_BUILD_BUILTINS=$BUILD_BUILTINS \
+        -DCOMPILER_RT_STATIC_CXX_LIBRARY=TRUE \
         -DCOMPILER_RT_EXCLUDE_ATOMIC_BUILTIN=FALSE \
         -DLLVM_CONFIG_PATH="" \
         -DCMAKE_FIND_ROOT_PATH=$PREFIX/$arch-w64-mingw32 \
         -DCMAKE_FIND_ROOT_PATH_MODE_INCLUDE=ONLY \
         -DCMAKE_FIND_ROOT_PATH_MODE_PACKAGE=ONLY \
+        -DSANITIZER_ALLOW_CXXABI=OFF \
         -DSANITIZER_CXX_ABI=libc++ \
-        -DCMAKE_C_FLAGS_INIT="$CFGUARD_CFLAGS" \
+        -DCMAKE_C_FLAGS_INIT="$CFGUARD_CFLAGS " \
         -DCMAKE_CXX_FLAGS_INIT="$CFGUARD_CFLAGS" \
+        -DCMAKE_CXX_FLAGS='-std=c++11' \
+        -DCMAKE_EXE_LINKER_FLAGS_INIT='-lc++abi' \
         $SRC_DIR
-    cmake --build . ${CORES:+-j${CORES}}
-    cmake --install . --prefix "$INSTALL_PREFIX"
+    cmake --build .
+    cmake --install .
     mkdir -p "$PREFIX/$arch-w64-mingw32/bin"
     if [ -n "$SANITIZERS" ]; then
-        case $arch in
-        aarch64)
-            # asan doesn't work on aarch64 or armv7; make this clear by omitting
-            # the installed files altogether.
-            rm "$INSTALL_PREFIX/lib/windows/libclang_rt.asan"*aarch64*
-            ;;
-        armv7)
-            rm "$INSTALL_PREFIX/lib/windows/libclang_rt.asan"*arm*
-            ;;
-        *)
-            mv "$INSTALL_PREFIX/lib/windows/"*.dll "$PREFIX/$arch-w64-mingw32/bin"
-            ;;
-        esac
+        mv "$CLANG_RESOURCE_DIR/lib/windows/"*.dll "$PREFIX/$arch-w64-mingw32/bin"
     fi
     cd ..
 done
-
-if [ "$INSTALL_PREFIX" != "$CLANG_RESOURCE_DIR" ]; then
-    # symlink to system headers - skip copy
-    rm -rf "$INSTALL_PREFIX/include"
-
-    cp -r "$INSTALL_PREFIX/." $CLANG_RESOURCE_DIR
-fi
