@@ -18,9 +18,6 @@ set -e
 
 while [ $# -gt 0 ]; do
     case "$1" in
-    --with-python)
-        PYTHON=1
-        ;;
     --disable-lldb)
         LLVM_ARGS="$LLVM_ARGS $1"
         NO_LLDB=1
@@ -29,9 +26,6 @@ while [ $# -gt 0 ]; do
         NO_LLDB_MI=1
         ;;
     --disable-clang-tools-extra)
-        LLVM_ARGS="$LLVM_ARGS $1"
-        ;;
-    --no-llvm-tool-reuse)
         LLVM_ARGS="$LLVM_ARGS $1"
         ;;
     --disable-mingw-w64-tools)
@@ -60,7 +54,7 @@ while [ $# -gt 0 ]; do
     shift
 done
 if [ -z "$CROSS_ARCH" ]; then
-    echo $0 native prefix arch [--with-python] [--disable-lldb] [--disable-lldb-mi] [--disable-clang-tool-extra] [--disable-mingw-w64-tools] [--disable-make]
+    echo $0 native prefix arch [--disable-lldb] [--disable-lldb-mi] [--disable-clang-tool-extra] [--disable-mingw-w64-tools] [--disable-make]
     exit 1
 fi
 
@@ -73,17 +67,6 @@ done
 
 export PATH="$NATIVE/bin:$PATH"
 HOST=$CROSS_ARCH-w64-mingw32
-
-if [ -n "$PYTHON" ]; then
-    PYTHON_NATIVE_PREFIX="$(cd "$(dirname "$0")" && pwd)/python-native"
-    [ -d "$PYTHON_NATIVE_PREFIX" ] || rm -rf "$PYTHON_NATIVE_PREFIX"
-    ./build-python.sh $PYTHON_NATIVE_PREFIX
-    export PATH="$PYTHON_NATIVE_PREFIX/bin:$PATH"
-    ./build-python.sh $PREFIX/python --host=$HOST
-    mkdir -p $PREFIX/bin
-    cp $PREFIX/python/bin/*.dll $PREFIX/bin
-    LLVM_ARGS="$LLVM_ARGS --with-python"
-fi
 
 ./build-llvm.sh $PREFIX --host=$HOST $LLVM_ARGS
 if [ -z "$NO_LLDB" ] && [ -z "$NO_LLDB_MI" ]; then

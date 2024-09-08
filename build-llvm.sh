@@ -16,7 +16,7 @@
 
 set -e
 
-: ${LLVM_VERSION:=llvmorg-19.1.3}
+: ${LLVM_VERSION:=19.1.3}
 ASSERTS=OFF
 unset HOST
 BUILDDIR="build"
@@ -35,10 +35,6 @@ while [ $# -gt 0 ]; do
         ASSERTS=ON
         ASSERTSSUFFIX="-asserts"
         ;;
-    --stage2)
-        STAGE2=1
-        BUILDDIR="$BUILDDIR-stage2"
-        ;;
     --thinlto)
         LTO="thin"
         BUILDDIR="$BUILDDIR-thinlto"
@@ -56,17 +52,11 @@ while [ $# -gt 0 ]; do
     --host=*)
         HOST="${1#*=}"
         ;;
-    --with-python)
-        WITH_PYTHON=1
-        ;;
     --disable-lldb)
         unset LLDB
         ;;
     --disable-clang-tools-extra)
         unset CLANG_TOOLS_EXTRA
-        ;;
-    --no-llvm-tool-reuse)
-        NO_LLVM_TOOL_REUSE=1
         ;;
     *)
         PREFIX="$1"
@@ -77,7 +67,7 @@ done
 BUILDDIR="$BUILDDIR$ASSERTSSUFFIX"
 if [ -z "$CHECKOUT_ONLY" ]; then
     if [ -z "$PREFIX" ]; then
-        echo $0 [--enable-asserts] [--stage2] [--thinlto] [--lto] [--disable-dylib] [--full-llvm] [--with-python] [--disable-lldb] [--disable-clang-tools-extra] [--host=triple] dest
+        echo $0 [--enable-asserts] [--thinlto] [--lto] [--disable-dylib] [--full-llvm] [--disable-lldb] [--disable-clang-tools-extra] [--host=triple] dest
         exit 1
     fi
 
@@ -89,7 +79,7 @@ if [ ! -d llvm-project ]; then
     mkdir llvm-project
     cd llvm-project
     git init
-    git remote add origin https://github.com/llvm/llvm-project.git
+    git remote add origin https://github.com/rorgoroth/llvm-project.git
     cd ..
     CHECKOUT=1
 fi
@@ -125,34 +115,6 @@ fi
 
 [ -z "$CHECKOUT_ONLY" ] || exit 0
 
-if [ -n "$HOST" ]; then
-    case $HOST in
-    *-mingw32)
-        TARGET_WINDOWS=1
-        ;;
-    esac
-else
-    case $(uname) in
-    MINGW*)
-        TARGET_WINDOWS=1
-        ;;
-    esac
-fi
-
-if command -v ninja >/dev/null; then
-    CMAKE_GENERATOR="Ninja"
-else
-    : ${CORES:=$(nproc 2>/dev/null)}
-    : ${CORES:=$(sysctl -n hw.ncpu 2>/dev/null)}
-    : ${CORES:=4}
-
-    case $(uname) in
-    MINGW*)
-        CMAKE_GENERATOR="MSYS Makefiles"
-        ;;
-    esac
-fi
-
 CMAKEFLAGS="$LLVM_CMAKEFLAGS"
 
 if [ -n "$HOST" ]; then
@@ -173,6 +135,7 @@ if [ -n "$HOST" ]; then
         exit 1
         ;;
     esac
+fi
 
     native=""
     for dir in llvm-project/llvm/build/bin llvm-project/llvm/build-asserts/bin; do
@@ -189,7 +152,7 @@ if [ -n "$HOST" ]; then
     fi
 
 
-    if [ -n "$native" ] && [ -z "$NO_LLVM_TOOL_REUSE" ]; then
+    if [ -n "$native" ]; then
         CMAKEFLAGS="$CMAKEFLAGS -DLLVM_NATIVE_TOOL_DIR=$native"
     fi
     CROSS_ROOT=$(cd $(dirname $(command -v $HOST-gcc))/../$HOST && pwd)
@@ -201,98 +164,8 @@ if [ -n "$HOST" ]; then
 
     BUILDDIR=$BUILDDIR-$HOST
 
-    if [ -n "$WITH_PYTHON" ] && [ -n "$TARGET_WINDOWS" ]; then
-        # The python3-config script requires executing with bash. It outputs
-        # an extra trailing space, which the extra 'echo' layer gets rid of.
-        EXT_SUFFIX="$(echo $(bash $PREFIX/python/bin/python3-config --extension-suffix))"
-        PYTHON_RELATIVE_PATH="$(cd "$PREFIX" && echo python/lib/python*/site-packages)"
-        PYTHON_INCLUDE_DIR="$(echo $PREFIX/python/include/python*)"
-        PYTHON_LIB="$(echo $PREFIX/python/lib/libpython3.*.dll.a)"
-        CMAKEFLAGS="$CMAKEFLAGS -DLLDB_ENABLE_PYTHON=ON"
-        CMAKEFLAGS="$CMAKEFLAGS -DPYTHON_HOME=$PREFIX/python"
-        CMAKEFLAGS="$CMAKEFLAGS -DLLDB_PYTHON_HOME=../python"
-        # Relative to the lldb install root
-        CMAKEFLAGS="$CMAKEFLAGS -DLLDB_PYTHON_RELATIVE_PATH=$PYTHON_RELATIVE_PATH"
-        # Relative to LLDB_PYTHON_HOME
-        CMAKEFLAGS="$CMAKEFLAGS -DLLDB_PYTHON_EXE_RELATIVE_PATH=bin/python3.exe"
-        CMAKEFLAGS="$CMAKEFLAGS -DLLDB_PYTHON_EXT_SUFFIX=$EXT_SUFFIX"
-
-        CMAKEFLAGS="$CMAKEFLAGS -DPython3_INCLUDE_DIRS=$PYTHON_INCLUDE_DIR"
-        CMAKEFLAGS="$CMAKEFLAGS -DPython3_LIBRARIES=$PYTHON_LIB"
-    fi
-elif [ -n "$STAGE2" ]; then
-    # Build using an earlier built and installed clang in the target directory
-    export PATH="$PREFIX/bin:$PATH"
-    CMAKEFLAGS="$CMAKEFLAGS -DCMAKE_C_COMPILER=clang"
-    CMAKEFLAGS="$CMAKEFLAGS -DCMAKE_CXX_COMPILER=clang++"
-    CMAKEFLAGS="$CMAKEFLAGS -DLLVM_USE_LINKER=lld"
-else
-    # Native compilation with the system default compiler.
-
-    # Use a faster linker, if available.
-    if command -v ld.lld >/dev/null; then
-        CMAKEFLAGS="$CMAKEFLAGS -DLLVM_USE_LINKER=lld"
-    elif command -v ld.gold >/dev/null; then
-        CMAKEFLAGS="$CMAKEFLAGS -DLLVM_USE_LINKER=gold"
-    fi
-fi
-
-if [ -n "$COMPILER_LAUNCHER" ]; then
-    CMAKEFLAGS="$CMAKEFLAGS -DCMAKE_C_COMPILER_LAUNCHER=$COMPILER_LAUNCHER"
-    CMAKEFLAGS="$CMAKEFLAGS -DCMAKE_CXX_COMPILER_LAUNCHER=$COMPILER_LAUNCHER"
-fi
-
-if [ -n "$TARGET_WINDOWS" ]; then
-    # Custom, llvm-mingw specific defaults. We normally set these in
-    # the frontend wrappers, but this makes sure they are enabled by
-    # default if that wrapper is bypassed as well.
-    CMAKEFLAGS="$CMAKEFLAGS -DCLANG_DEFAULT_RTLIB=compiler-rt"
-    CMAKEFLAGS="$CMAKEFLAGS -DCLANG_DEFAULT_UNWINDLIB=libunwind"
-    CMAKEFLAGS="$CMAKEFLAGS -DCLANG_DEFAULT_CXX_STDLIB=libc++"
-    CMAKEFLAGS="$CMAKEFLAGS -DCLANG_DEFAULT_LINKER=lld"
-    CMAKEFLAGS="$CMAKEFLAGS -DLLD_DEFAULT_LD_LLD_IS_MINGW=ON"
-fi
-
 if [ -n "$LTO" ]; then
     CMAKEFLAGS="$CMAKEFLAGS -DLLVM_ENABLE_LTO=$LTO"
-fi
-
-if [ -n "$MACOS_REDIST" ]; then
-    : ${MACOS_REDIST_ARCHS:=arm64 x86_64}
-    : ${MACOS_REDIST_VERSION:=10.9}
-    ARCH_LIST=""
-    NATIVE=
-    for arch in $MACOS_REDIST_ARCHS; do
-        if [ -n "$ARCH_LIST" ]; then
-            ARCH_LIST="$ARCH_LIST;"
-        fi
-        ARCH_LIST="$ARCH_LIST$arch"
-        if [ "$(uname -m)" = "$arch" ]; then
-            NATIVE=1
-        fi
-    done
-    CMAKEFLAGS="$CMAKEFLAGS -DCMAKE_OSX_ARCHITECTURES=$ARCH_LIST"
-    CMAKEFLAGS="$CMAKEFLAGS -DCMAKE_OSX_DEPLOYMENT_TARGET=$MACOS_REDIST_VERSION"
-    if [ -z "$NATIVE" ]; then
-        # If we're not building for the native arch, flag to CMake that we're
-        # cross compiling, to let it build native versions of tools used
-        # during the build.
-        ARCH="$(echo $MACOS_REDIST_ARCHS | awk '{print $1}')"
-        CMAKEFLAGS="$CMAKEFLAGS -DCMAKE_SYSTEM_NAME=Darwin"
-        CMAKEFLAGS="$CMAKEFLAGS -DCMAKE_SYSTEM_PROCESSOR=$ARCH"
-    fi
-fi
-
-if [ -z "$HOST" ] && [ "$(uname)" = "Darwin" ]; then
-    if [ -n "$LLDB" ]; then
-        # Building LLDB for macOS fails unless building libc++ is enabled at the
-        # same time, or unless the LLDB tests are disabled.
-        CMAKEFLAGS="$CMAKEFLAGS -DLLDB_INCLUDE_TESTS=OFF"
-        # Don't build our own debugserver - use the system provided one.
-        # The newly built debugserver needs to be properly code signed to work.
-        # This silences a cmake warning.
-        CMAKEFLAGS="$CMAKEFLAGS -DLLDB_USE_SYSTEM_DEBUGSERVER=ON"
-    fi
 fi
 
 TOOLCHAIN_ONLY=ON
@@ -315,20 +188,142 @@ mkdir -p $BUILDDIR
 cd $BUILDDIR
 [ -n "$NO_RECONF" ] || rm -rf CMake*
 cmake \
-    ${CMAKE_GENERATOR+-G} "$CMAKE_GENERATOR" \
+    -G Ninja \
     -DCMAKE_INSTALL_PREFIX="$PREFIX" \
     -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_C_COMPILER=clang \
+    -DCMAKE_CXX_COMPILER=clang++ \
+    -DBUILD_SHARED_LIBS=OFF \
+    -DCLANG_DEFAULT_CXX_STDLIB=libc++ \
+    -DCLANG_DEFAULT_LINKER=lld \
+    -DCLANG_DEFAULT_RTLIB=compiler-rt \
+    -DCLANG_DEFAULT_UNWINDLIB=libunwind \
+    -DCLANG_ENABLE_ARCMT=OFF \
+    -DCLANG_ENABLE_STATIC_ANALYZER=OFF \
+    -DCLANG_INCLUDE_TESTS=OFF \
+    -DCLANG_TOOL_AMDGPU_ARCH_BUILD=OFF \
+    -DCLANG_TOOL_APINOTES_TEST_BUILD=OFF \
+    -DCLANG_TOOL_ARCMT_TEST_BUILD=OFF \
+    -DCLANG_TOOL_C_ARCMT_TEST_BUILD=OFF \
+    -DCLANG_TOOL_C_INDEX_TEST_BUILD=OFF \
+    -DCLANG_TOOL_CLANG_CHECK_BUILD=OFF \
+    -DCLANG_TOOL_CLANG_DIFF_BUILD=OFF \
+    -DCLANG_TOOL_CLANG_EXTDEF_MAPPING_BUILD=OFF \
+    -DCLANG_TOOL_CLANG_FORMAT_BUILD=OFF \
+    -DCLANG_TOOL_CLANG_FORMAT_VS_BUILD=OFF \
+    -DCLANG_TOOL_CLANG_FUZZER_BUILD=OFF \
+    -DCLANG_TOOL_CLANG_IMPORT_TEST_BUILD=OFF \
+    -DCLANG_TOOL_CLANG_LINKER_WRAPPER_BUILD=OFF \
+    -DCLANG_TOOL_CLANG_OFFLOAD_BUNDLER_BUILD=OFF \
+    -DCLANG_TOOL_CLANG_OFFLOAD_PACKAGER_BUILD=OFF \
+    -DCLANG_TOOL_CLANG_REFACTOR_BUILD=OFF \
+    -DCLANG_TOOL_CLANG_RENAME_BUILD=OFF \
+    -DCLANG_TOOL_CLANG_REPL_BUILD=OFF \
+    -DCLANG_TOOL_CLANG_SCAN_DEPS_BUILD=OFF \
+    -DCLANG_TOOL_CLANG_SHLIB_BUILD=OFF \
+    -DCLANG_TOOL_DIAGTOOL_BUILD=OFF \
+    -DCLANG_TOOL_LIBCLANG_BUILD=OFF \
+    -DCLANG_TOOL_NVPTX_ARCH_BUILD=OFF \
+    -DCLANG_TOOL_SCAN_BUILD_BUILD=OFF \
+    -DCLANG_TOOL_SCAN_BUILD_PY_BUILD=OFF \
+    -DCLANG_TOOL_SCAN_VIEW_BUILD=OFF \
+    -DLLD_DEFAULT_LD_LLD_IS_MINGW=ON \
+    -DLLVM_BUILD_LLVM_DYLIB=OFF \
+    -DLLVM_BUILD_TESTS=OFF \
     -DLLVM_ENABLE_ASSERTIONS=$ASSERTS \
+    -DLLVM_ENABLE_ASSERTIONS=OFF \
+    -DLLVM_ENABLE_LIBCXX=ON \
+    -DLLVM_ENABLE_LIBXML2=OFF \
     -DLLVM_ENABLE_PROJECTS="$PROJECTS" \
-    -DLLVM_TARGETS_TO_BUILD="ARM;AArch64;X86;NVPTX" \
+    -DLLVM_ENABLE_TERMINFO=OFF \
+    -DLLVM_INCLUDE_BENCHMARKS=OFF \
+    -DLLVM_INCLUDE_DOCS=OFF \
+    -DLLVM_INCLUDE_EXAMPLES=OFF \
+    -DLLVM_INCLUDE_TESTS=OFF \
+    -DLLVM_INCLUDE_UTILS=OFF \
     -DLLVM_INSTALL_TOOLCHAIN_ONLY=$TOOLCHAIN_ONLY \
-    -DLLVM_LINK_LLVM_DYLIB=$LINK_DYLIB \
+    -DLLVM_LINK_LLVM_DYLIB=OFF \
+    -DLLVM_TARGETS_TO_BUILD="X86" \
+    -DLLVM_TOOL_BUGPOINT_BUILD=OFF \
+    -DLLVM_TOOL_BUGPOINT_PASSES_BUILD=OFF \
+    -DLLVM_TOOL_DSYMUTIL_BUILD=OFF \
+    -DLLVM_TOOL_DXIL_DIS_BUILD=OFF \
+    -DLLVM_TOOL_GOLD_BUILD=OFF \
+    -DLLVM_TOOL_LLC_BUILD=OFF \
+    -DLLVM_TOOL_LLI_BUILD=OFF \
+    -DLLVM_TOOL_LLVM_AS_BUILD=OFF \
+    -DLLVM_TOOL_LLVM_AS_FUZZER_BUILD=OFF \
+    -DLLVM_TOOL_LLVM_BCANALYZER_BUILD=OFF \
+    -DLLVM_TOOL_LLVM_C_TEST_BUILD=OFF \
+    -DLLVM_TOOL_LLVM_CAT_BUILD=OFF \
+    -DLLVM_TOOL_LLVM_CFI_VERIFY_BUILD=OFF \
+    -DLLVM_TOOL_LLVM_COV_BUILD=OFF \
+    -DLLVM_TOOL_LLVM_CXXDUMP_BUILD=OFF \
+    -DLLVM_TOOL_LLVM_CXXFILT_BUILD=OFF \
+    -DLLVM_TOOL_LLVM_CXXMAP_BUILD=OFF \
+    -DLLVM_TOOL_LLVM_DEBUGINFO_ANALYZER_BUILD=OFF \
+    -DLLVM_TOOL_LLVM_DEBUGINFOD_BUILD=OFF \
+    -DLLVM_TOOL_LLVM_DEBUGINFOD_FIND_BUILD=OFF \
+    -DLLVM_TOOL_LLVM_DIFF_BUILD=OFF \
+    -DLLVM_TOOL_LLVM_DIS_BUILD=OFF \
+    -DLLVM_TOOL_LLVM_DIS_FUZZER_BUILD=OFF \
+    -DLLVM_TOOL_LLVM_DLANG_DEMANGLE_FUZZER_BUILD=OFF \
+    -DLLVM_TOOL_LLVM_DWARFDUMP_BUILD=OFF \
+    -DLLVM_TOOL_LLVM_DWARFUTIL_BUILD=OFF \
+    -DLLVM_TOOL_LLVM_DWP_BUILD=OFF \
+    -DLLVM_TOOL_LLVM_EXEGESIS_BUILD=OFF \
+    -DLLVM_TOOL_LLVM_EXTRACT_BUILD=OFF \
+    -DLLVM_TOOL_LLVM_GSYMUTIL_BUILD=OFF \
+    -DLLVM_TOOL_LLVM_IFS_BUILD=OFF \
+    -DLLVM_TOOL_LLVM_ISEL_FUZZER_BUILD=OFF \
+    -DLLVM_TOOL_LLVM_ITANIUM_DEMANGLE_FUZZER_BUILD=OFF \
+    -DLLVM_TOOL_LLVM_JITLINK_BUILD=OFF \
+    -DLLVM_TOOL_LLVM_JITLISTENER_BUILD=OFF \
+    -DLLVM_TOOL_LLVM_LIBTOOL_DARWIN_BUILD=OFF \
+    -DLLVM_TOOL_LLVM_LINK_BUILD=OFF \
+    -DLLVM_TOOL_LLVM_LIPO_BUILD=OFF \
+    -DLLVM_TOOL_LLVM_LTO_BUILD=OFF \
+    -DLLVM_TOOL_LLVM_LTO2_BUILD=OFF \
+    -DLLVM_TOOL_LLVM_MC_ASSEMBLE_FUZZER_BUILD=OFF \
+    -DLLVM_TOOL_LLVM_MC_BUILD=OFF \
+    -DLLVM_TOOL_LLVM_MC_DISASSEMBLE_FUZZER_BUILD=OFF \
+    -DLLVM_TOOL_LLVM_MCA_BUILD=OFF \
+    -DLLVM_TOOL_LLVM_MICROSOFT_DEMANGLE_FUZZER_BUILD=OFF \
+    -DLLVM_TOOL_LLVM_MODEXTRACT_BUILD=OFF \
+    -DLLVM_TOOL_LLVM_MT_BUILD=OFF \
+    -DLLVM_TOOL_LLVM_OPT_FUZZER_BUILD=OFF \
+    -DLLVM_TOOL_LLVM_PROFGEN_BUILD=OFF \
+    -DLLVM_TOOL_LLVM_READTAPI_BUILD=OFF \
+    -DLLVM_TOOL_LLVM_REDUCE_BUILD=OFF \
+    -DLLVM_TOOL_LLVM_REMARKUTIL_BUILD=OFF \
+    -DLLVM_TOOL_LLVM_RTDYLD_BUILD=OFF \
+    -DLLVM_TOOL_LLVM_RUST_DEMANGLE_FUZZER_BUILD=OFF \
+    -DLLVM_TOOL_LLVM_SHLIB_BUILD=OFF \
+    -DLLVM_TOOL_LLVM_SIM_BUILD=OFF \
+    -DLLVM_TOOL_LLVM_SPECIAL_CASE_LIST_FUZZER_BUILD=OFF \
+    -DLLVM_TOOL_LLVM_SPLIT_BUILD=OFF \
+    -DLLVM_TOOL_LLVM_STRESS_BUILD=OFF \
+    -DLLVM_TOOL_LLVM_TLI_CHECKER_BUILD=OFF \
+    -DLLVM_TOOL_LLVM_UNDNAME_BUILD=OFF \
+    -DLLVM_TOOL_LLVM_XRAY_BUILD=OFF \
+    -DLLVM_TOOL_LLVM_YAML_NUMERIC_PARSER_FUZZER_BUILD=OFF \
+    -DLLVM_TOOL_LLVM_YAML_PARSER_FUZZER_BUILD=OFF \
+    -DLLVM_TOOL_OBJ2YAML_BUILD=OFF \
+    -DLLVM_TOOL_OPT_VIEWER_BUILD=OFF \
+    -DLLVM_TOOL_REMARKS_SHLIB_BUILD=OFF \
+    -DLLVM_TOOL_SANCOV_BUILD=OFF \
+    -DLLVM_TOOL_SANSTATS_BUILD=OFF \
+    -DLLVM_TOOL_SPIRV_TOOLS_BUILD=OFF \
+    -DLLVM_TOOL_VERIFY_USELISTORDER_BUILD=OFF \
+    -DLLVM_TOOL_VFABI_DEMANGLE_FUZZER_BUILD=OFF \
+    -DLLVM_TOOL_XCODE_TOOLCHAIN_BUILD=OFF \
+    -DLLVM_USE_LINKER=lld \
     -DLLVM_TOOLCHAIN_TOOLS="llvm-ar;llvm-ranlib;llvm-objdump;llvm-rc;llvm-cvtres;llvm-nm;llvm-strings;llvm-readobj;llvm-dlltool;llvm-pdbutil;llvm-objcopy;llvm-strip;llvm-cov;llvm-profdata;llvm-addr2line;llvm-symbolizer;llvm-windres;llvm-ml;llvm-readelf;llvm-size;llvm-cxxfilt" \
     ${HOST+-DLLVM_HOST_TRIPLE=$HOST} \
     $CMAKEFLAGS \
     ..
 
-cmake --build . ${CORES:+-j${CORES}}
+cmake --build .
 cmake --install . --strip
 
 cp ../LICENSE.TXT $PREFIX
