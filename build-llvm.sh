@@ -16,7 +16,7 @@
 
 set -e
 
-: ${LLVM_VERSION:=19.1.6}
+: ${LLVM_VERSION:=19.1.7}
 ASSERTS=OFF
 unset HOST
 BUILDDIR="build"
