@@ -33,7 +33,7 @@ jobs:
 
       - name: create_release_tag
         id: create_release
-        uses: shxrklol/action-auto-releases-n20@v1.1
+        uses: rearrangement/auto-releases@v1.1
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           automatic_release_tag: "19.1.7"
