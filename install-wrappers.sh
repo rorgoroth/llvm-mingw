@@ -58,8 +58,6 @@ else
     esac
 fi
 
-<<<<<<< HEAD
-=======
 if [ -n "${HOST_CLANG}" ]; then
     HOST_CLANG_EXE=$(command -v $HOST_CLANG)
     HOST_CLANG_VER=$(echo "__clang_major__ __clang_minor__ __clang_patchlevel__" | $HOST_CLANG_EXE -E -P -x c - | xargs printf '%d.%d.%d')
@@ -98,16 +96,6 @@ if [ -n "${HOST_CLANG}" ]; then
     done
 fi
 
-if [ -n "$MACOS_REDIST" ]; then
-    : ${MACOS_REDIST_ARCHS:=arm64 x86_64}
-    : ${MACOS_REDIST_VERSION:=10.12}
-    for arch in $MACOS_REDIST_ARCHS; do
-        WRAPPER_FLAGS="$WRAPPER_FLAGS -arch $arch"
-    done
-    WRAPPER_FLAGS="$WRAPPER_FLAGS -mmacosx-version-min=$MACOS_REDIST_VERSION"
-fi
-
->>>>>>> 3dbfd1727055b75073acf42ec743ab986f43de1f
 if [ -n "$EXEEXT" ]; then
     CLANG_MAJOR=$(basename $(echo $PREFIX/lib/clang/* | awk '{print $NF}') | cut -f 1 -d .)
     WRAPPER_FLAGS="$WRAPPER_FLAGS -municode -DCLANG=\"clang-$CLANG_MAJOR\""
