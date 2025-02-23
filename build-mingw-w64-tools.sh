@@ -74,7 +74,6 @@ else
         ;;
     esac
 fi
-
 if [ -n "$SKIP_INCLUDE_TRIPLET_PREFIX" ]; then
     INCLUDEDIR="$PREFIX/include"
 else
