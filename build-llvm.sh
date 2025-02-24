@@ -16,7 +16,7 @@
 
 set -e
 
-: ${LLVM_VERSION:=llvmorg-20.1.0}
+: ${LLVM_VERSION:=20.1.0}
 ASSERTS=OFF
 unset HOST
 BUILDDIR="build"
@@ -89,7 +89,7 @@ if [ ! -d llvm-project ]; then
     mkdir llvm-project
     cd llvm-project
     git init
-    git remote add origin https://github.com/llvm/llvm-project.git
+    git remote add origin https://github.com/rorgoroth/llvm-project.git
     cd ..
     CHECKOUT=1
 fi
@@ -139,19 +139,7 @@ else
     esac
 fi
 
-if command -v ninja >/dev/null; then
-    CMAKE_GENERATOR="Ninja"
-else
-    : ${CORES:=$(nproc 2>/dev/null)}
-    : ${CORES:=$(sysctl -n hw.ncpu 2>/dev/null)}
-    : ${CORES:=4}
 
-    case $(uname) in
-    MINGW*)
-        CMAKE_GENERATOR="MSYS Makefiles"
-        ;;
-    esac
-fi
 
 CMAKEFLAGS="$LLVM_CMAKEFLAGS"
 
@@ -304,7 +292,7 @@ mkdir -p $BUILDDIR
 cd $BUILDDIR
 [ -n "$NO_RECONF" ] || rm -rf CMake*
 cmake \
-    ${CMAKE_GENERATOR+-G} "$CMAKE_GENERATOR" \
+    -G Ninja \
     -DCMAKE_INSTALL_PREFIX="$PREFIX" \
     -DCMAKE_BUILD_TYPE=Release \
     -DLLVM_ENABLE_ASSERTIONS=$ASSERTS \
@@ -317,7 +305,7 @@ cmake \
     $CMAKEFLAGS \
     ..
 
-cmake --build . ${CORES:+-j${CORES}}
+cmake --build .
 cmake --install . --strip
 
 cp ../LICENSE.TXT $PREFIX
