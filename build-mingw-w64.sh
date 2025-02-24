@@ -16,9 +16,10 @@
 
 set -e
 
-: ${DEFAULT_WIN32_WINNT:=0x601}
+: ${DEFAULT_WIN32_WINNT:=0x0A00}
 : ${DEFAULT_MSVCRT:=ucrt}
-: ${MINGW_W64_VERSION:=993da580b776c1659ee963e37995ca2e62683951}
+: ${MINGW_W64_VERSION:=d7e849d00cf44991a4a7131ba1dfda982ffb2cb0}
+# https://github.com/mingw-w64/mingw-w64
 
 CFGUARD_FLAGS="--enable-cfguard"
 
@@ -87,7 +88,7 @@ unset CC
 : ${CORES:=$(nproc 2>/dev/null)}
 : ${CORES:=$(sysctl -n hw.ncpu 2>/dev/null)}
 : ${CORES:=4}
-: ${ARCHS:=${TOOLCHAIN_ARCHS-i686 x86_64 armv7 aarch64}}
+: ${ARCHS:=${TOOLCHAIN_ARCHS-x86_64}}
 
 if [ -z "$SKIP_INCLUDE_TRIPLET_PREFIX" ]; then
     HEADER_ROOT="$PREFIX/generic-w64-mingw32"

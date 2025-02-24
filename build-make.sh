@@ -39,10 +39,6 @@ fi
 mkdir -p "$PREFIX"
 PREFIX="$(cd "$PREFIX" && pwd)"
 
-: ${CORES:=$(nproc 2>/dev/null)}
-: ${CORES:=$(sysctl -n hw.ncpu 2>/dev/null)}
-: ${CORES:=4}
-
 download() {
     if command -v wget >/dev/null; then
         wget "$1"
@@ -67,5 +63,5 @@ fi
 mkdir -p build$CROSS_NAME
 cd build$CROSS_NAME
 ../configure --prefix="$PREFIX" $CONFIGFLAGS --program-prefix=mingw32- --enable-job-server LDFLAGS="-Wl,-s"
-make -j$CORES
+make -j2
 make install-binPROGRAMS

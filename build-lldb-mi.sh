@@ -51,19 +51,7 @@ if [ -n "$SYNC" ] || [ -n "$CHECKOUT" ]; then
     cd ..
 fi
 
-if command -v ninja >/dev/null; then
-    CMAKE_GENERATOR="Ninja"
-else
-    : ${CORES:=$(nproc 2>/dev/null)}
-    : ${CORES:=$(sysctl -n hw.ncpu 2>/dev/null)}
-    : ${CORES:=4}
 
-    case $(uname) in
-    MINGW*)
-        CMAKE_GENERATOR="MSYS Makefiles"
-        ;;
-    esac
-fi
 
 export LLVM_DIR="$PREFIX"
 
@@ -139,11 +127,11 @@ mkdir -p $BUILDDIR
 cd $BUILDDIR
 [ -n "$NO_RECONF" ] || rm -rf CMake*
 cmake \
-    ${CMAKE_GENERATOR+-G} "$CMAKE_GENERATOR" \
+    -G Ninja \
     -DCMAKE_INSTALL_PREFIX="$PREFIX" \
     -DCMAKE_BUILD_TYPE=Release \
     $CMAKEFLAGS \
     ..
 
-cmake --build . ${CORES:+-j${CORES}}
+cmake --build .
 cmake --install . --strip
