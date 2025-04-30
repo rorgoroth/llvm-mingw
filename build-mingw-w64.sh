@@ -76,7 +76,7 @@ if command -v gmake >/dev/null; then
 fi
 
 case $(uname) in
-MINGW*|MSYS*)
+MINGW*|MSYS*|CYGWIN*)
     CRT_CONFIG_FLAGS="--disable-dependency-tracking"
     ;;
 esac
@@ -133,6 +133,7 @@ for arch in $ARCHS; do
         ;;
     esac
     FLAGS="$FLAGS --with-default-msvcrt=$DEFAULT_MSVCRT"
+    FLAGS="$FLAGS --enable-silent-rules"
     ../configure --host=$arch-w64-mingw32 --prefix="$PREFIX/$arch-w64-mingw32" $FLAGS $CFGUARD_FLAGS $CRT_CONFIG_FLAGS
     $MAKE -j$CORES
     $MAKE install
