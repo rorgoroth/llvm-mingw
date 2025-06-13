@@ -36,16 +36,16 @@ jobs:
         uses: rearrangement/auto-releases@v1.1
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          automatic_release_tag: "20.1.6"
+          automatic_release_tag: "20.1.7"
           prerelease: false
-          title: 20.1.6
+          title: 20.1.7
 
       - name: upload_packages
         id: upload_release
         uses: svenstaro/upload-release-action@2.9.0
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: 20.1.6.tar.zst
-          tag: 20.1.6
+          file: 20.1.7.tar.zst
+          tag: 20.1.7
           overwrite: true
           file_glob: true
