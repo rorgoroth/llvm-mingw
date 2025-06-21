@@ -42,7 +42,7 @@ jobs:
 
       - name: upload_packages
         id: upload_release
-        uses: svenstaro/upload-release-action@2.9.0
+        uses: svenstaro/upload-release-action@2.9.1
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: 20.1.7.tar.zst
