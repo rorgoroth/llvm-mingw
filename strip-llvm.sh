@@ -66,20 +66,13 @@ for i in amdgpu-arch bugpoint c-index-test clang-* clangd clangd-* darwin-debug 
     fi
     # Basename has got $EXEEXT stripped, but any other suffix kept intact.
     case $basename in
-    *.sh)
-        ;;
-    clang++|clang-*.*|clang-cpp)
-        ;;
-    clang-format|git-clang-format)
-        ;;
-    clangd)
-        ;;
-    clang-scan-deps)
-        ;;
-    clang-tidy)
-        ;;
-    clang-target-wrapper*|clang-scan-deps-wrapper*)
-        ;;
+    *.sh) ;;
+    clang++ | clang-*.* | clang-cpp) ;;
+    clang-format | git-clang-format) ;;
+    clangd) ;;
+    clang-scan-deps) ;;
+    clang-tidy) ;;
+    clang-target-wrapper* | clang-scan-deps-wrapper*) ;;
     clang-*)
         suffix="${basename#*-}"
         # Test removing all numbers from the suffix; if it is empty, the suffix
@@ -89,15 +82,13 @@ for i in amdgpu-arch bugpoint c-index-test clang-* clangd clangd-* darwin-debug 
             rm -f $i
         fi
         ;;
-    llvm-ar|llvm-cvtres|llvm-dlltool|llvm-nm|llvm-objdump|llvm-ranlib|llvm-rc|llvm-readobj|llvm-strings|llvm-pdbutil|llvm-objcopy|llvm-strip|llvm-cov|llvm-profdata|llvm-addr2line|llvm-symbolizer|llvm-wrapper|llvm-windres|llvm-ml|llvm-readelf|llvm-size|llvm-cxxfilt|llvm-lib)
-        ;;
-    ld64.lld|wasm-ld)
+    llvm-ar | llvm-cvtres | llvm-dlltool | llvm-nm | llvm-objdump | llvm-ranlib | llvm-rc | llvm-readobj | llvm-strings | llvm-pdbutil | llvm-objcopy | llvm-strip | llvm-cov | llvm-profdata | llvm-addr2line | llvm-symbolizer | llvm-wrapper | llvm-windres | llvm-ml | llvm-readelf | llvm-size | llvm-cxxfilt | llvm-lib) ;;
+    ld64.lld | wasm-ld)
         if [ -e $i ]; then
             rm $i
         fi
         ;;
-    lldb|lldb-server|lldb-argdumper|lldb-instr|lldb-mi|lldb-vscode|lldb-dap)
-        ;;
+    lldb | lldb-server | lldb-argdumper | lldb-instr | lldb-mi | lldb-vscode | lldb-dap) ;;
     *)
         if [ -f $i ]; then
             rm $i
@@ -130,8 +121,7 @@ cd share
 cd clang
 for i in *; do
     case $i in
-    clang-format*)
-        ;;
+    clang-format*) ;;
     *)
         rm -rf $i
         ;;
@@ -149,8 +139,7 @@ rm -f *.dll.a
 rm -f lib*.a
 for i in *.so* *.dylib* cmake; do
     case $i in
-    liblldb*|libclang-cpp*|libLLVM*)
-        ;;
+    liblldb* | libclang-cpp* | libLLVM*) ;;
     *)
         rm -rf $i
         ;;

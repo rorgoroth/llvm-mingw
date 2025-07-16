@@ -64,13 +64,13 @@ for lib in winpthreads; do
         cd build-$arch
         arch_prefix="$PREFIX/$arch-w64-mingw32"
         ../configure --host=$arch-w64-mingw32 \
-                     --prefix="$arch_prefix" \
-                     --libdir="$arch_prefix/lib" \
-                     --disable-shared \
-                     --enable-static \
-                     --enable-silent-rules \
-                     CFLAGS="$USE_CFLAGS" \
-                     CXXFLAGS="$USE_CFLAGS"
+            --prefix="$arch_prefix" \
+            --libdir="$arch_prefix/lib" \
+            --disable-shared \
+            --enable-static \
+            --enable-silent-rules \
+            CFLAGS="$USE_CFLAGS" \
+            CXXFLAGS="$USE_CFLAGS"
         $MAKE -j$CORES
         $MAKE install
         cd ..

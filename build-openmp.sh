@@ -50,16 +50,13 @@ fi
 
 cd llvm-project/openmp
 
-
-
 for arch in $ARCHS; do
     CMAKEFLAGS=""
     case $arch in
     x86_64)
         CMAKEFLAGS="$CMAKEFLAGS -DLIBOMP_ASMFLAGS=-m64"
         ;;
-    arm64ec)
-        # Not yet supported
+    *)
         continue
         ;;
     esac

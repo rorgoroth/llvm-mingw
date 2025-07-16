@@ -76,7 +76,7 @@ if command -v gmake >/dev/null; then
 fi
 
 case $(uname) in
-MINGW*|MSYS*|CYGWIN*)
+MINGW* | MSYS* | CYGWIN*)
     CRT_CONFIG_FLAGS="--disable-dependency-tracking"
     ;;
 esac
@@ -119,12 +119,6 @@ for arch in $ARCHS; do
     mkdir -p build-$arch
     cd build-$arch
     case $arch in
-    armv7)
-        FLAGS="--disable-lib32 --disable-lib64 --enable-libarm32"
-        ;;
-    aarch64|arm64ec)
-        FLAGS="--disable-lib32 --disable-lib64 --enable-libarm64"
-        ;;
     i686)
         FLAGS="--enable-lib32 --disable-lib64"
         ;;

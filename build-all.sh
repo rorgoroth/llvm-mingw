@@ -27,7 +27,7 @@ while [ $# -gt 0 ]; do
     --enable-asserts)
         LLVM_ARGS="$LLVM_ARGS $1"
         ;;
-    --host-clang|--host-clang=*)
+    --host-clang | --host-clang=*)
         HOST_CLANG=${1#--host-clang}
         HOST_CLANG=${HOST_CLANG#=}
         HOST_CLANG=${HOST_CLANG:-clang}
@@ -98,7 +98,7 @@ for dep in git cmake ${HOST_CLANG}; do
     fi
 done
 
-if [ -n "${HOST_CLANG}" ] && [ "${CFGUARD_ARGS}" = "--enable-cfguard"  ]; then
+if [ -n "${HOST_CLANG}" ] && [ "${CFGUARD_ARGS}" = "--enable-cfguard" ]; then
     "${HOST_CLANG}" -c -x c -o - - -Werror -mguard=cf </dev/null >/dev/null 2>/dev/null || CFGUARD_ARGS="--disable-cfguard"
 fi
 

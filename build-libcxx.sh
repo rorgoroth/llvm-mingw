@@ -58,8 +58,6 @@ cd llvm-project
 
 cd runtimes
 
-
-
 for arch in $ARCHS; do
     [ -z "$CLEAN" ] || rm -rf build-$arch
     mkdir -p build-$arch
