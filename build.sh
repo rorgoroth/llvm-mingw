@@ -13,4 +13,4 @@ git clean -xdf
 
 find ./llvm-x86_64-w64-mingw32 -name '*.dll.a' -print -delete
 
-tar -c -I 'zstd -18 -T0' -f 21.1.0-rc1.tar.zst llvm-x86_64-w64-mingw32
+tar -c -I 'zstd -18 -T0' -f 21.1.0-rc1-v2.tar.zst llvm-x86_64-w64-mingw32
