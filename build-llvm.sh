@@ -35,9 +35,9 @@ while [ $# -gt 0 ]; do
         ASSERTS=ON
         ASSERTSSUFFIX="-asserts"
         ;;
-    --stage2)
-        STAGE2=1
-        BUILDDIR="$BUILDDIR-stage2"
+    --with-clang)
+        WITH_CLANG=1
+        BUILDDIR="$BUILDDIR-withclang"
         ;;
     --thinlto)
         LTO="thin"
@@ -74,7 +74,7 @@ done
 BUILDDIR="$BUILDDIR$ASSERTSSUFFIX"
 if [ -z "$CHECKOUT_ONLY" ]; then
     if [ -z "$PREFIX" ]; then
-        echo $0 [--enable-asserts] [--stage2] [--thinlto] [--lto] [--disable-dylib] [--full-llvm] [--disable-lldb] [--disable-clang-tools-extra] [--host=triple] dest
+        echo $0 [--enable-asserts] [--with-clang] [--thinlto] [--lto] [--disable-dylib] [--full-llvm] [--disable-lldb] [--disable-clang-tools-extra] [--host=triple] dest
         exit 1
     fi
 
@@ -183,9 +183,9 @@ if [ -n "$HOST" ]; then
 
     BUILDDIR=$BUILDDIR-$HOST
 
-elif [ -n "$STAGE2" ]; then
-    # Build using an earlier built and installed clang in the target directory
-    export PATH="$PREFIX/bin:$PATH"
+elif [ -n "$WITH_CLANG" ]; then
+    # Build using clang and lld (from $PATH), rather than the system default
+    # tools.
     CMAKEFLAGS="$CMAKEFLAGS -DCMAKE_C_COMPILER=clang"
     CMAKEFLAGS="$CMAKEFLAGS -DCMAKE_CXX_COMPILER=clang++"
     CMAKEFLAGS="$CMAKEFLAGS -DLLVM_USE_LINKER=lld"
