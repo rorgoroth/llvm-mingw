@@ -31,15 +31,6 @@ jobs:
           sh build.sh
         shell: alpine.sh {0}
 
-      - name: create_release_tag
-        id: create_release
-        uses: rearrangement/auto-releases@v1.1
-        with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          automatic_release_tag: "21.1.0"
-          prerelease: false
-          title: 21.1.0
-
       - name: upload_packages
         id: upload_release
         uses: svenstaro/upload-release-action@2.9.0
