@@ -76,7 +76,7 @@ if command -v gmake >/dev/null; then
 fi
 
 case $(uname) in
-MINGW* | MSYS* | CYGWIN*)
+MINGW*|MSYS*|CYGWIN*)
     CRT_CONFIG_FLAGS="--disable-dependency-tracking"
     ;;
 esac

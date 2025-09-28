@@ -9,8 +9,9 @@ git clean -xdf
     --with-default-win32-winnt=0x0A00 \
     --with-default-msvcrt=ucrt \
     --disable-cfguard \
+	--with-clang \
     llvm-x86_64-w64-mingw32
 
 find ./llvm-x86_64-w64-mingw32 -name '*.dll.a' -print -delete
 
-tar -c -I 'zstd -18 -T0' -f 21.1.2.tar.zst llvm-x86_64-w64-mingw32
+tar -c -I 'zstd -18 -T0' -f 21.1.2-r2.tar.zst llvm-x86_64-w64-mingw32

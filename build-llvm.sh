@@ -24,6 +24,7 @@ LINK_DYLIB=ON
 ASSERTSSUFFIX=""
 LLDB=ON
 CLANG_TOOLS_EXTRA=ON
+INSTRUMENTED=OFF
 
 while [ $# -gt 0 ]; do
     case "$1" in
@@ -38,6 +39,9 @@ while [ $# -gt 0 ]; do
     --with-clang)
         WITH_CLANG=1
         BUILDDIR="$BUILDDIR-withclang"
+        ;;
+    --use-linker=*)
+        USE_LINKER="${1#*=}"
         ;;
     --thinlto)
         LTO="thin"
@@ -65,7 +69,29 @@ while [ $# -gt 0 ]; do
     --no-llvm-tool-reuse)
         NO_LLVM_TOOL_REUSE=1
         ;;
+    --instrumented|--instrumented=*)
+        INSTRUMENTED="${1#--instrumented}"
+        INSTRUMENTED="${INSTRUMENTED#=}"
+        INSTRUMENTED="${INSTRUMENTED:-Frontend}"
+        : ${LLVM_PROFILE_DATA_DIR:=/tmp/llvm-profile}
+        # A fixed BUILDDIR is set at the end for this case.
+        ;;
+    --pgo|--pgo=*)
+        LLVM_PROFDATA_FILE="${1#--pgo}"
+        LLVM_PROFDATA_FILE="${LLVM_PROFDATA_FILE#=}"
+        LLVM_PROFDATA_FILE="${LLVM_PROFDATA_FILE:-profile.profdata}"
+        if [ ! -e "$LLVM_PROFDATA_FILE" ]; then
+            echo Profile \"$LLVM_PROFDATA_FILE\" not found
+            exit 1
+        fi
+        LLVM_PROFDATA_FILE="$(cd "$(dirname "$LLVM_PROFDATA_FILE")" && pwd)/$(basename "$LLVM_PROFDATA_FILE")"
+        BUILDDIR="$BUILDDIR-pgo"
+        ;;
     *)
+        if [ -n "$PREFIX" ]; then
+            echo Unrecognized parameter $1
+            exit 1
+        fi
         PREFIX="$1"
         ;;
     esac
@@ -74,12 +100,14 @@ done
 BUILDDIR="$BUILDDIR$ASSERTSSUFFIX"
 if [ -z "$CHECKOUT_ONLY" ]; then
     if [ -z "$PREFIX" ]; then
-        echo $0 [--enable-asserts] [--with-clang] [--thinlto] [--lto] [--disable-dylib] [--full-llvm] [--disable-lldb] [--disable-clang-tools-extra] [--host=triple] dest
+        echo $0 [--enable-asserts] [--with-clang] [--use-linker=linker] [--thinlto] [--lto] [--instrumented[=type]] [--pgo[=profile]] [--disable-dylib] [--full-llvm] [--with-python] [--disable-lldb] [--disable-clang-tools-extra] [--host=triple] [--no-llvm-tool-reuse] [--macos-native-tools] dest
         exit 1
     fi
 
-    mkdir -p "$PREFIX"
-    PREFIX="$(cd "$PREFIX" && pwd)"
+    if [ "$INSTRUMENTED" = "OFF" ]; then
+        mkdir -p "$PREFIX"
+        PREFIX="$(cd "$PREFIX" && pwd)"
+    fi
 fi
 
 if [ ! -d llvm-project ]; then
@@ -144,7 +172,7 @@ if [ -n "$HOST" ]; then
     if [ -n "$WITH_CLANG" ]; then
         CMAKEFLAGS="$CMAKEFLAGS -DCMAKE_C_COMPILER=clang"
         CMAKEFLAGS="$CMAKEFLAGS -DCMAKE_CXX_COMPILER=clang++"
-        CMAKEFLAGS="$CMAKEFLAGS -DLLVM_USE_LINKER=lld"
+        CMAKEFLAGS="$CMAKEFLAGS -DLLVM_USE_LINKER=${USE_LINKER:-lld}"
         CMAKEFLAGS="$CMAKEFLAGS -DCMAKE_ASM_COMPILER_TARGET=$HOST"
         CMAKEFLAGS="$CMAKEFLAGS -DCMAKE_C_COMPILER_TARGET=$HOST"
         CMAKEFLAGS="$CMAKEFLAGS -DCMAKE_CXX_COMPILER_TARGET=$HOST"
@@ -201,12 +229,14 @@ elif [ -n "$WITH_CLANG" ]; then
     # tools.
     CMAKEFLAGS="$CMAKEFLAGS -DCMAKE_C_COMPILER=clang"
     CMAKEFLAGS="$CMAKEFLAGS -DCMAKE_CXX_COMPILER=clang++"
-    CMAKEFLAGS="$CMAKEFLAGS -DLLVM_USE_LINKER=lld"
+    CMAKEFLAGS="$CMAKEFLAGS -DLLVM_USE_LINKER=${USE_LINKER:-lld}"
 else
     # Native compilation with the system default compiler.
 
     # Use a faster linker, if available.
-    if command -v ld.lld >/dev/null; then
+    if [ -n "$USE_LINKER" ]; then
+        CMAKEFLAGS="$CMAKEFLAGS -DLLVM_USE_LINKER=$USE_LINKER"
+    elif command -v ld.lld >/dev/null; then
         CMAKEFLAGS="$CMAKEFLAGS -DLLVM_USE_LINKER=lld"
     elif command -v ld.gold >/dev/null; then
         CMAKEFLAGS="$CMAKEFLAGS -DLLVM_USE_LINKER=gold"
@@ -216,10 +246,23 @@ fi
 if [ -n "$COMPILER_LAUNCHER" ]; then
     CMAKEFLAGS="$CMAKEFLAGS -DCMAKE_C_COMPILER_LAUNCHER=$COMPILER_LAUNCHER"
     CMAKEFLAGS="$CMAKEFLAGS -DCMAKE_CXX_COMPILER_LAUNCHER=$COMPILER_LAUNCHER"
+    # Make the LLVM build system set options for forcing relative paths
+    # within the files, e.g. for source file references within assert
+    # messages. This on its own isn't enough for making the cache reusable
+    # across different worktrees though; one also needs to set the ccache
+    # base_dir (CCACHE_BASEDIR) option. When setting that ccache option, this
+    # option here doesn't really have any effect either, except for debug info.
+    CMAKEFLAGS="$CMAKEFLAGS -DLLVM_USE_RELATIVE_PATHS_IN_FILES=ON"
 fi
 
 if [ -n "$LTO" ]; then
     CMAKEFLAGS="$CMAKEFLAGS -DLLVM_ENABLE_LTO=$LTO"
+fi
+
+if [ "$INSTRUMENTED" != "OFF" ]; then
+    # For instrumented build, use a hardcoded builddir that we can
+    # locate, and don't install the built files.
+    BUILDDIR="build-instrumented"
 fi
 
 TOOLCHAIN_ONLY=ON
@@ -252,10 +295,18 @@ cmake \
     -DLLVM_LINK_LLVM_DYLIB=$LINK_DYLIB \
     -DLLVM_TOOLCHAIN_TOOLS="llvm-ar;llvm-ranlib;llvm-objdump;llvm-rc;llvm-cvtres;llvm-nm;llvm-strings;llvm-readobj;llvm-dlltool;llvm-pdbutil;llvm-objcopy;llvm-strip;llvm-cov;llvm-profdata;llvm-addr2line;llvm-symbolizer;llvm-windres;llvm-ml;llvm-readelf;llvm-size;llvm-cxxfilt;llvm-lib" \
     ${HOST+-DLLVM_HOST_TRIPLE=$HOST} \
+    -DLLVM_BUILD_INSTRUMENTED=$INSTRUMENTED \
+    ${LLVM_PROFILE_DATA_DIR+-DLLVM_PROFILE_DATA_DIR=$LLVM_PROFILE_DATA_DIR} \
+    ${LLVM_PROFDATA_FILE+-DLLVM_PROFDATA_FILE=$LLVM_PROFDATA_FILE} \
     $CMAKEFLAGS \
     ..
 
-cmake --build .
-cmake --install . --strip
-
-cp ../LICENSE.TXT $PREFIX
+if [ "$INSTRUMENTED" != "OFF" ]; then
+    # For instrumented builds, don't install the built files (so $PREFIX
+    # is entirely unused).
+    cmake --build . --target clang --target lld
+else
+    cmake --build .
+    cmake --install . --strip
+    cp ../LICENSE.TXT $PREFIX
+fi

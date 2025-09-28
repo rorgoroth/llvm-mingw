@@ -21,7 +21,7 @@ unset HOST_CLANG
 
 while [ $# -gt 0 ]; do
     case "$1" in
-    --host-clang | --host-clang=*)
+    --host-clang|--host-clang=*)
         HOST_CLANG=${1#--host-clang}
         HOST_CLANG=${HOST_CLANG#=}
         HOST_CLANG=${HOST_CLANG:-clang}
@@ -84,7 +84,7 @@ if [ -n "${HOST_CLANG}" ]; then
 
     # Note: clang will detect the "InstalledDir" based on the path that was used to invoke the tools
     # This might still have some hidden effects
-    printf '#!/bin/sh\nsr=$(dirname "$(dirname "$(readlink -f "$0")")")\nexec %s -resource-dir="$sr"%s --sysroot="$sr" --config-system-dir="$sr"/bin "$@"\n' "$HOST_CLANG_EXE" "$clangres" >$PREFIX/bin/clang
+    printf '#!/bin/sh\nsr=$(dirname "$(dirname "$(readlink -f "$0")")")\nexec %s -resource-dir="$sr"%s --sysroot="$sr" --config-system-dir="$sr"/bin "$@"\n' "$HOST_CLANG_EXE" "$clangres" > $PREFIX/bin/clang
     # printf '#!/bin/sh\nsr=$(dirname "$(dirname "$(readlink -f "$0")")")\nexec %s -resource-dir="$sr"%s --sysroot="$sr" "$@"\n' "$(readlink -f "$HOST_CLANG_EXE")" "$clangres" > $PREFIX/bin/clang
     chmod 755 $PREFIX/bin/clang
     ln -sf clang $PREFIX/bin/clang++
@@ -97,7 +97,7 @@ if [ -n "${HOST_CLANG}" ]; then
     llvmexec="$PATH:$llvmdir/bin"
 
     for exec in ld.lld llvm-ar llvm-ranlib llvm-nm llvm-objcopy llvm-strip llvm-rc llvm-cvtres \
-        llvm-addr2line llvm-dlltool llvm-readelf llvm-size llvm-strings llvm-addr2line llvm-windres llvm-ml llvm-lib; do
+                llvm-addr2line llvm-dlltool llvm-readelf llvm-size llvm-strings llvm-addr2line llvm-windres llvm-ml llvm-lib; do
         execpath=$(PATH=$llvmexec command -v $exec) && ln -sf $execpath $PREFIX/bin/$exec
     done
 fi
@@ -122,7 +122,7 @@ if [ -n "$HOST" ] && [ -n "$EXEEXT" ]; then
     # TODO: If building natively on msys, pick up the default HOST value from there.
     WRAPPER_FLAGS="$WRAPPER_FLAGS -DDEFAULT_TARGET=\"$HOST\""
     for i in wrappers/*-wrapper.sh; do
-        cat $i | sed 's/^DEFAULT_TARGET=.*/DEFAULT_TARGET='$HOST/ >"$PREFIX/bin/$(basename $i)"
+        cat $i | sed 's/^DEFAULT_TARGET=.*/DEFAULT_TARGET='$HOST/ > "$PREFIX/bin/$(basename $i)"
     done
 fi
 $CC wrappers/clang-target-wrapper.c -o "$PREFIX/bin/clang-target-wrapper$EXEEXT" -O2 -Wl,-s $WRAPPER_FLAGS
