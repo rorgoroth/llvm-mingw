@@ -36,7 +36,7 @@ jobs:
         uses: svenstaro/upload-release-action@2.9.0
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: 21.1.3.tar.zst
-          tag: 21.1.3
+          file: 21.1.4.tar.zst
+          tag: 21.1.4
           overwrite: true
           file_glob: true
