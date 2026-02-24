@@ -16,7 +16,7 @@
 
 set -e
 
-: ${BUSYBOX_VERSION:=90c68f18dc24fb3919811199f849fa2dc7a75294}
+: ${BUSYBOX_VERSION:=1f493261d16be3d984fe8a689f5113dafb6eaaa7}
 
 BUILDDIR=build
 
@@ -92,5 +92,5 @@ for i in $(cat applets.txt); do
         continue
         ;;
     esac
-    ln -s busybox-wrapper.exe $PREFIX/bin/$i.exe
+    ln -sf busybox-wrapper.exe $PREFIX/bin/$i.exe
 done
