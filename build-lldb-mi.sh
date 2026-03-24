@@ -16,7 +16,8 @@
 
 set -e
 
-: ${LLDB_MI_VERSION:=31ed003a15a4a8e44881401d065217dfb2642406}
+: ${LLDB_MI_VERSION:=7bdbec5b1773c35feb7af2e620c7fb4fab179b41}
+# https://github.com/lldb-tools/lldb-mi
 BUILDDIR=build
 unset HOST
 
