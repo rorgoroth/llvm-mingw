@@ -18,12 +18,6 @@ set -e
 
 while [ $# -gt 0 ]; do
     case "$1" in
-    --with-python)
-        PYTHON=1
-        ;;
-    --with-busybox)
-        BUSYBOX=1
-        ;;
     --disable-lldb)
         LLVM_ARGS="$LLVM_ARGS $1"
         NO_LLDB=1
@@ -47,7 +41,7 @@ while [ $# -gt 0 ]; do
     --disable-make)
         NO_MAKE=1
         ;;
-    --thinlto|--lto|--pgo*)
+    --thinlto|--lto*)
         LLVM_ARGS="$LLVM_ARGS $1"
         ;;
     *)
@@ -66,7 +60,7 @@ while [ $# -gt 0 ]; do
     shift
 done
 if [ -z "$CROSS_ARCH" ]; then
-    echo $0 native prefix arch [--with-python] [--with-busybox] [--disable-lldb] [--disable-lldb-mi] [--disable-clang-tools-extra] [--disable-mingw-w64-tools] [--disable-make] [--no-llvm-tool-reuse] [--thinlto] [--lto] [--pgo[=profile]]
+    echo $0 native prefix arch [--disable-lldb] [--disable-lldb-mi] [--disable-clang-tools-extra] [--disable-mingw-w64-tools] [--disable-make] [--no-llvm-tool-reuse] [--thinlto] [--lto]
     exit 1
 fi
 
@@ -79,17 +73,6 @@ done
 
 export PATH="$NATIVE/bin:$PATH"
 HOST=$CROSS_ARCH-w64-mingw32
-
-if [ -n "$PYTHON" ]; then
-    PYTHON_NATIVE_PREFIX="$(cd "$(dirname "$0")" && pwd)/python-native"
-    [ -d "$PYTHON_NATIVE_PREFIX" ] || rm -rf "$PYTHON_NATIVE_PREFIX"
-    ./build-python.sh $PYTHON_NATIVE_PREFIX
-    export PATH="$PYTHON_NATIVE_PREFIX/bin:$PATH"
-    ./build-python.sh $PREFIX/python --host=$HOST
-    mkdir -p $PREFIX/bin
-    cp $PREFIX/python/bin/*.dll $PREFIX/bin
-    LLVM_ARGS="$LLVM_ARGS --with-python"
-fi
 
 ./build-llvm.sh $PREFIX --host=$HOST $LLVM_ARGS
 if [ -z "$NO_LLDB" ] && [ -z "$NO_LLDB_MI" ]; then
@@ -105,12 +88,4 @@ fi
 ./prepare-cross-toolchain.sh $NATIVE $PREFIX $CROSS_ARCH
 if [ -z "$NO_MAKE" ]; then
     ./build-make.sh $PREFIX --host=$HOST
-fi
-if [ -n "$BUSYBOX" ]; then
-    ./build-busybox.sh $PREFIX/busybox --host=$HOST
-    if [ -z "$NO_MAKE" ]; then
-        cp $PREFIX/bin/mingw32-make.exe $PREFIX/busybox/bin/make.exe
-        mkdir -p $PREFIX/busybox/share
-        cp -a $PREFIX/share/make $PREFIX/busybox/share
-    fi
 fi
