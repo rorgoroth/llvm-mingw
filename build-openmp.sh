@@ -52,6 +52,7 @@ cd llvm-project/runtimes
 
 for arch in $ARCHS; do
     CMAKEFLAGS=""
+    FLAGS=""
     case $arch in
     x86_64)
         CMAKEFLAGS="$CMAKEFLAGS -DLIBOMP_ASMFLAGS=-m64"
@@ -79,8 +80,9 @@ for arch in $ARCHS; do
         -DCMAKE_RANLIB="$PREFIX/bin/llvm-ranlib" \
         -DLLVM_ENABLE_RUNTIMES="openmp" \
         -DLIBOMP_ENABLE_SHARED=TRUE \
-        -DCMAKE_C_FLAGS_INIT="$CFGUARD_CFLAGS" \
-        -DCMAKE_CXX_FLAGS_INIT="$CFGUARD_CFLAGS" \
+        -DCMAKE_C_FLAGS_INIT="$CFGUARD_CFLAGS $FLAGS" \
+        -DCMAKE_CXX_FLAGS_INIT="$CFGUARD_CFLAGS $FLAGS" \
+        -DCMAKE_SHARED_LINKER_FLAGS="$FLAGS" \
         $CMAKEFLAGS \
         ..
     cmake --build .

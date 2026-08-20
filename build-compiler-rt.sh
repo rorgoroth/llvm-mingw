@@ -120,7 +120,26 @@ if [ -n "$NATIVE" ]; then
     exit 0
 fi
 
+ARM64X_FLAGS=""
+if [ -z "$SANITIZERS" ]; then
+    for arch in $ARCHS; do
+        case $arch in
+        arm64ec) ARM64X_FLAGS="-marm64x" ;;
+        esac
+    done
+fi
+
 for arch in $ARCHS; do
+    FLAGS=""
+    case $arch in
+    aarch64)
+        FLAGS="$ARM64X_FLAGS"
+        ;;
+    arm64ec)
+        continue
+        ;;
+    esac
+
     [ -z "$CLEAN" ] || rm -rf build-$arch$BUILD_SUFFIX
     mkdir -p build-$arch$BUILD_SUFFIX
     cd build-$arch$BUILD_SUFFIX
@@ -146,8 +165,9 @@ for arch in $ARCHS; do
         -DCMAKE_FIND_ROOT_PATH_MODE_INCLUDE=ONLY \
         -DCMAKE_FIND_ROOT_PATH_MODE_PACKAGE=ONLY \
         -DSANITIZER_CXX_ABI=libc++ \
-        -DCMAKE_C_FLAGS_INIT="$CFGUARD_CFLAGS" \
-        -DCMAKE_CXX_FLAGS_INIT="$CFGUARD_CFLAGS" \
+        -DCMAKE_C_FLAGS_INIT="$CFGUARD_CFLAGS $FLAGS" \
+        -DCMAKE_CXX_FLAGS_INIT="$CFGUARD_CFLAGS $FLAGS" \
+        -DCMAKE_ASM_FLAGS_INIT="$FLAGS" \
         $SRC_DIR
     cmake --build .
     cmake --install . --prefix "$INSTALL_PREFIX"

@@ -55,10 +55,27 @@ if command -v gmake >/dev/null; then
     MAKE=gmake
 fi
 
+ARM64X_FLAGS=""
+for arch in $ARCHS; do
+    case $arch in
+    arm64ec) ARM64X_FLAGS="-marm64x" ;;
+    esac
+done
+
 cd mingw-w64/mingw-w64-libraries
 for lib in winpthreads; do
     cd $lib
+    FLAGS=""
     for arch in $ARCHS; do
+        case $arch in
+        aarch64)
+            FLAGS="$ARM64X_FLAGS"
+            ;;
+        arm64ec)
+            continue
+            ;;
+        esac
+
         [ -z "$CLEAN" ] || rm -rf build-$arch
         mkdir -p build-$arch
         cd build-$arch
@@ -69,8 +86,9 @@ for lib in winpthreads; do
             --disable-shared \
             --enable-static \
             --enable-silent-rules \
-            CFLAGS="$USE_CFLAGS" \
-            CXXFLAGS="$USE_CFLAGS"
+            CFLAGS="$USE_CFLAGS $FLAGS" \
+            CXXFLAGS="$USE_CFLAGS $FLAGS" \
+            LDFLAGS="$FLAGS"
         $MAKE -j$CORES
         $MAKE install
         cd ..
