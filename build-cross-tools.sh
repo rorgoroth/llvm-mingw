@@ -59,6 +59,7 @@ while [ $# -gt 0 ]; do
     esac
     shift
 done
+
 if [ -z "$CROSS_ARCH" ]; then
     echo $0 native prefix arch [--disable-lldb] [--disable-lldb-mi] [--disable-clang-tools-extra] [--disable-mingw-w64-tools] [--disable-make] [--no-llvm-tool-reuse] [--thinlto] [--lto]
     exit 1
@@ -75,17 +76,18 @@ export PATH="$NATIVE/bin:$PATH"
 HOST=$CROSS_ARCH-w64-mingw32
 
 ./build-llvm.sh $PREFIX --host=$HOST $LLVM_ARGS
+
 if [ -z "$NO_LLDB" ] && [ -z "$NO_LLDB_MI" ]; then
     ./build-lldb-mi.sh $PREFIX --host=$HOST
 fi
+
 if [ -z "$FULL_LLVM" ]; then
     ./strip-llvm.sh $PREFIX --host=$HOST
 fi
+
 if [ -z "$NO_MINGW_W64_TOOLS" ]; then
     ./build-mingw-w64-tools.sh $PREFIX --skip-include-triplet-prefix --host=$HOST
 fi
+
 ./install-wrappers.sh $PREFIX --host=$HOST
 ./prepare-cross-toolchain.sh $NATIVE $PREFIX $CROSS_ARCH
-if [ -z "$NO_MAKE" ]; then
-    ./build-make.sh $PREFIX --host=$HOST
-fi

@@ -32,6 +32,7 @@ while [ $# -gt 0 ]; do
     esac
     shift
 done
+
 if [ -z "$CHECKOUT_ONLY" ]; then
     if [ -z "$PREFIX" ]; then
         echo $0 [--skip-include-triplet-prefix] [--host=triple] dest
@@ -56,12 +57,13 @@ fi
 : ${CORES:=$(nproc 2>/dev/null)}
 : ${CORES:=$(sysctl -n hw.ncpu 2>/dev/null)}
 : ${CORES:=4}
-: ${ARCHS:=${TOOLCHAIN_ARCHS-x86_64}}
+: ${ARCHS:=${TOOLCHAIN_ARCHS-i686 x86_64}}
 : ${TARGET_OSES:=${TOOLCHAIN_TARGET_OSES-mingw32 mingw32uwp}}
 
 if [ -n "$HOST" ]; then
     CONFIGFLAGS="$CONFIGFLAGS --host=$HOST"
     CROSS_NAME=-$HOST
+
     case $HOST in
     *-mingw32)
         EXEEXT=.exe
@@ -80,30 +82,37 @@ if [ -n "$SKIP_INCLUDE_TRIPLET_PREFIX" ]; then
 else
     INCLUDEDIR="$PREFIX/generic-w64-mingw32/include"
 fi
-ANY_ARCH=$(echo $ARCHS | awk '{print $1}')
 
+ANY_ARCH=$(echo $ARCHS | awk '{print $1}')
 CONFIGFLAGS="$CONFIGFLAGS --enable-silent-rules"
 
 cd mingw-w64-tools/gendef
 [ -z "$CLEAN" ] || rm -rf build${CROSS_NAME}
 mkdir -p build${CROSS_NAME}
 cd build${CROSS_NAME}
+
 ../configure --prefix="$PREFIX" $CONFIGFLAGS
 $MAKE -j$CORES
 $MAKE install-strip
+
 mkdir -p "$PREFIX/share/gendef"
 install -m644 ../COPYING "$PREFIX/share/gendef/COPYING.txt"
+
 cd ../../widl
 [ -z "$CLEAN" ] || rm -rf build${CROSS_NAME}
 mkdir -p build${CROSS_NAME}
 cd build${CROSS_NAME}
+
 ../configure --prefix="$PREFIX" --target=$ANY_ARCH-w64-mingw32 --with-widl-includedir="$INCLUDEDIR" $CONFIGFLAGS
 $MAKE -j$CORES
 $MAKE install-strip
+
 mkdir -p "$PREFIX/share/widl"
 install -m644 ../../../COPYING "$PREFIX/share/widl/COPYING.txt"
+
 cd ..
 cd "$PREFIX/bin"
+
 # The build above produced $ANY_ARCH-w64-mingw32-widl, add symlinks to it
 # with other prefixes.
 for arch in $ARCHS; do
@@ -113,6 +122,7 @@ for arch in $ARCHS; do
         fi
     done
 done
+
 if [ -n "$EXEEXT" ]; then
     # In a build of the tools for windows, we also want to provide an
     # unprefixed one. If crosscompiling, we know what the native arch is;
@@ -121,8 +131,10 @@ if [ -n "$EXEEXT" ]; then
     if [ -z "$HOST" ] && [ -f clang$EXEEXT ]; then
         HOST=$(./clang -dumpmachine | sed 's/-.*//')-w64-mingw32
     fi
+
     if [ -n "$HOST" ]; then
         HOST_ARCH="${HOST%%-*}"
+
         # Only install an unprefixed symlink if $HOST is one of the architectures
         # we are installing wrappers for.
         case $ARCHS in

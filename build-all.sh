@@ -80,6 +80,7 @@ while [ $# -gt 0 ]; do
     esac
     shift
 done
+
 if [ -z "$PREFIX" ]; then
     echo "$0 [--enable-asserts] [--disable-dylib] [--with-clang] [--use-linker=linker] [--thinlto] [--full-llvm] [--disable-lldb] [--disable-lldb-mi] [--disable-clang-tools-extra] [--host=triple] [--with-default-win32-winnt=0x601] [--with-default-msvcrt=ucrt] [--enable-cfguard|--disable-cfguard] [--no-runtimes] [--llvm-only] [--no-tools] [--wipe-runtimes] [--clean-runtimes] dest"
     exit 1
@@ -92,18 +93,20 @@ for dep in git cmake clang; do
     fi
 done
 
-
 if [ -z "$NO_TOOLS" ]; then
-        ./build-llvm.sh $PREFIX $LLVM_ARGS $HOST_ARGS
-        if [ -z "$NO_LLDB" ] && [ -z "$NO_LLDB_MI" ]; then
-            ./build-lldb-mi.sh $PREFIX $HOST_ARGS
-        fi
-        if [ -z "$FULL_LLVM" ]; then
-            ./strip-llvm.sh $PREFIX $HOST_ARGS
-        fi
-    	if [ -n "$LLVM_ONLY" ]; then
-     		exit 0
-    	fi
+    ./build-llvm.sh $PREFIX $LLVM_ARGS $HOST_ARGS
+    if [ -z "$NO_LLDB" ] && [ -z "$NO_LLDB_MI" ]; then
+        ./build-lldb-mi.sh $PREFIX $HOST_ARGS
+    fi
+
+    if [ -z "$FULL_LLVM" ]; then
+        ./strip-llvm.sh $PREFIX $HOST_ARGS
+    fi
+
+    if [ -n "$LLVM_ONLY" ]; then
+        exit 0
+    fi
+
     ./install-wrappers.sh $PREFIX $HOST_ARGS ${HOST_CLANG:+--host-clang=$HOST_CLANG}
     ./build-mingw-w64-tools.sh $PREFIX $HOST_ARGS
 fi
@@ -114,7 +117,6 @@ fi
 
 if [ -n "$WIPE_RUNTIMES" ]; then
     # Remove the runtime code built previously.
-    #
     # This roughly matches the setup as if --no-runtimes had been passed,
     # except that compiler-rt headers are left installed in lib/clang/*/include.
     rm -rf $PREFIX/*-w64-mingw32 $PREFIX/lib/clang/*/lib

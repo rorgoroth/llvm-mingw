@@ -18,6 +18,7 @@ set -e
 
 : ${LLVM_REPOSITORY:=https://github.com/rorgoroth/llvm-project.git}
 : ${LLVM_VERSION:=22.1.8}
+
 ASSERTS=OFF
 unset HOST
 BUILDDIR="build"
@@ -79,10 +80,12 @@ while [ $# -gt 0 ]; do
     esac
     shift
 done
+
 BUILDDIR="$BUILDDIR$ASSERTSSUFFIX"
+
 if [ -z "$CHECKOUT_ONLY" ]; then
     if [ -z "$PREFIX" ]; then
-        echo $0 [--enable-asserts] [--with-clang] [--use-linker=linker] [--thinlto] [--lto] [--disable-dylib] [--full-llvm] [--disable-lldb] [--disable-clang-tools-extra] [--host=triple] [--no-llvm-tool-reuse] [--macos-native-tools] dest
+        echo $0 [--enable-asserts] [--with-clang] [--use-linker=linker] [--thinlto] [--lto] [--disable-dylib] [--full-llvm] [--disable-lldb] [--disable-clang-tools-extra] [--host=triple] [--no-llvm-tool-reuse] dest
         exit 1
     fi
 
@@ -101,21 +104,12 @@ fi
 
 if [ -n "$SYNC" ] || [ -n "$CHECKOUT" ]; then
     cd llvm-project
-    # Check if the intended commit or tag exists in the local repo. If it
-    # exists, just check it out instead of trying to fetch it.
-    # (Redoing a shallow fetch will refetch the data even if the commit
-    # already exists locally, unless fetching a tag with the "tag"
-    # argument.)
+
     if git cat-file -e "$LLVM_VERSION" 2>/dev/null; then
-        # Exists; just check it out
         git checkout "$LLVM_VERSION"
     else
         case "$LLVM_VERSION" in
         llvmorg-*)
-            # If $LLVM_VERSION looks like a tag, fetch it with the
-            # "tag" keyword. This makes sure that the local repo
-            # gets the tag too, not only the commit itself. This allows
-            # later fetches to realize that the tag already exists locally.
             git fetch --depth 1 origin tag "$LLVM_VERSION"
             git checkout "$LLVM_VERSION"
             ;;
@@ -130,20 +124,6 @@ fi
 
 [ -z "$CHECKOUT_ONLY" ] || exit 0
 
-if [ -n "$HOST" ]; then
-    case $HOST in
-    *-mingw32)
-        TARGET_WINDOWS=1
-        ;;
-    esac
-else
-    case $(uname) in
-    MINGW*)
-        TARGET_WINDOWS=1
-        ;;
-    esac
-fi
-
 CMAKEFLAGS="$LLVM_CMAKEFLAGS"
 
 if [ -n "$HOST" ]; then
@@ -156,6 +136,7 @@ if [ -n "$HOST" ]; then
         CMAKEFLAGS="$CMAKEFLAGS -DCMAKE_ASM_COMPILER_TARGET=$HOST"
         CMAKEFLAGS="$CMAKEFLAGS -DCMAKE_C_COMPILER_TARGET=$HOST"
         CMAKEFLAGS="$CMAKEFLAGS -DCMAKE_CXX_COMPILER_TARGET=$HOST"
+
         if command -v $HOST-strip >/dev/null; then
             CMAKEFLAGS="$CMAKEFLAGS -DCMAKE_STRIP=$(command -v $HOST-strip)"
         fi
@@ -164,6 +145,7 @@ if [ -n "$HOST" ]; then
         CMAKEFLAGS="$CMAKEFLAGS -DCMAKE_CXX_COMPILER=$HOST-g++"
         CMAKEFLAGS="$CMAKEFLAGS -DCMAKE_SYSTEM_PROCESSOR=$ARCH"
     fi
+
     case $HOST in
     *-mingw32)
         CMAKEFLAGS="$CMAKEFLAGS -DCMAKE_SYSTEM_NAME=Windows"
@@ -188,6 +170,7 @@ if [ -n "$HOST" ]; then
             break
         fi
     done
+
     if [ -z "$native" ] && command -v llvm-tblgen >/dev/null; then
         native="$(dirname $(command -v llvm-tblgen))"
     fi
@@ -195,7 +178,9 @@ if [ -n "$HOST" ]; then
     if [ -n "$native" ] && [ -z "$NO_LLVM_TOOL_REUSE" ]; then
         CMAKEFLAGS="$CMAKEFLAGS -DLLVM_NATIVE_TOOL_DIR=$native"
     fi
+
     CROSS_ROOT=$(cd $(dirname $(command -v $HOST-gcc))/../$HOST && pwd)
+
     CMAKEFLAGS="$CMAKEFLAGS -DCMAKE_FIND_ROOT_PATH=$CROSS_ROOT"
     CMAKEFLAGS="$CMAKEFLAGS -DCMAKE_FIND_ROOT_PATH_MODE_PROGRAM=NEVER"
     CMAKEFLAGS="$CMAKEFLAGS -DCMAKE_FIND_ROOT_PATH_MODE_INCLUDE=ONLY"
@@ -211,8 +196,6 @@ elif [ -n "$WITH_CLANG" ]; then
     CMAKEFLAGS="$CMAKEFLAGS -DCMAKE_CXX_COMPILER=clang++"
     CMAKEFLAGS="$CMAKEFLAGS -DLLVM_USE_LINKER=${USE_LINKER:-lld}"
 else
-    # Native compilation with the system default compiler.
-
     # Use a faster linker, if available.
     if [ -n "$USE_LINKER" ]; then
         CMAKEFLAGS="$CMAKEFLAGS -DLLVM_USE_LINKER=$USE_LINKER"
@@ -226,12 +209,6 @@ fi
 if [ -n "$COMPILER_LAUNCHER" ]; then
     CMAKEFLAGS="$CMAKEFLAGS -DCMAKE_C_COMPILER_LAUNCHER=$COMPILER_LAUNCHER"
     CMAKEFLAGS="$CMAKEFLAGS -DCMAKE_CXX_COMPILER_LAUNCHER=$COMPILER_LAUNCHER"
-    # Make the LLVM build system set options for forcing relative paths
-    # within the files, e.g. for source file references within assert
-    # messages. This on its own isn't enough for making the cache reusable
-    # across different worktrees though; one also needs to set the ccache
-    # base_dir (CCACHE_BASEDIR) option. When setting that ccache option, this
-    # option here doesn't really have any effect either, except for debug info.
     CMAKEFLAGS="$CMAKEFLAGS -DLLVM_USE_RELATIVE_PATHS_IN_FILES=ON"
 fi
 
@@ -247,9 +224,11 @@ fi
 cd llvm-project/llvm
 
 PROJECTS="clang;lld"
+
 if [ -n "$LLDB" ]; then
     PROJECTS="$PROJECTS;lldb"
 fi
+
 if [ -n "$CLANG_TOOLS_EXTRA" ]; then
     PROJECTS="$PROJECTS;clang-tools-extra"
 fi
@@ -257,7 +236,9 @@ fi
 [ -z "$CLEAN" ] || rm -rf $BUILDDIR
 mkdir -p $BUILDDIR
 cd $BUILDDIR
+
 [ -n "$NO_RECONF" ] || rm -rf CMake*
+
 cmake \
     -G Ninja \
     -DCMAKE_INSTALL_PREFIX="$PREFIX" \
@@ -267,11 +248,20 @@ cmake \
     -DLLVM_TARGETS_TO_BUILD="X86" \
     -DLLVM_INSTALL_TOOLCHAIN_ONLY=$TOOLCHAIN_ONLY \
     -DLLVM_LINK_LLVM_DYLIB=$LINK_DYLIB \
+    -DLLVM_INCLUDE_TESTS=OFF \
+    -DLLVM_INCLUDE_EXAMPLES=OFF \
+    -DLLVM_INCLUDE_DOCS=OFF \
+    -DLLVM_INCLUDE_BENCHMARKS=OFF \
+    -DLLVM_USE_LINKER=lld \
+    -DLLVM_ENABLE_Z3_SOLVER=OFF \
+    -DLLVM_ENABLE_LIBXML2=OFF \
+    -DLLVM_ENABLE_ZLIB=OFF \
+    -DLLVM_ENABLE_WARNINGS=OFF \
     -DLLVM_TOOLCHAIN_TOOLS="llvm-ar;llvm-ranlib;llvm-objdump;llvm-rc;llvm-cvtres;llvm-nm;llvm-strings;llvm-readobj;llvm-dlltool;llvm-pdbutil;llvm-objcopy;llvm-strip;llvm-cov;llvm-profdata;llvm-addr2line;llvm-symbolizer;llvm-windres;llvm-ml;llvm-readelf;llvm-size;llvm-cxxfilt;llvm-lib" \
     ${HOST+-DLLVM_HOST_TRIPLE=$HOST} \
     $CMAKEFLAGS \
     ..
 
-    cmake --build .
-    cmake --install . --strip
-    cp ../LICENSE.TXT $PREFIX
+cmake --build .
+cmake --install . --strip
+cp ../LICENSE.TXT $PREFIX

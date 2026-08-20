@@ -29,6 +29,7 @@ while [ $# -gt 0 ]; do
     esac
     shift
 done
+
 if [ -z "$PREFIX" ]; then
     echo $0 [--host=triple] dir
     exit 1
@@ -54,6 +55,7 @@ MINGW*)
 esac
 
 cd bin
+
 for i in amdgpu-arch bugpoint c-index-test clang-* clangd clangd-* darwin-debug diagtool dsymutil find-all-symbols git-clang-format hmaptool ld64.lld* llc lldb-* lli llvm-* modularize nvptx-arch obj2yaml offload-arch opt pp-trace sancov sanstats scan-build scan-view split-file verify-uselistorder wasm-ld yaml2* libclang.dll *LTO.dll *Remarks.dll *.bat; do
     basename=$i
     if [ -n "$EXEEXT" ]; then
@@ -64,6 +66,7 @@ for i in amdgpu-arch bugpoint c-index-test clang-* clangd clangd-* darwin-debug 
             i=$basename$EXEEXT
         fi
     fi
+
     # Basename has got $EXEEXT stripped, but any other suffix kept intact.
     case $basename in
     *.sh)
@@ -108,6 +111,7 @@ for i in amdgpu-arch bugpoint c-index-test clang-* clangd clangd-* darwin-debug 
         ;;
     esac
 done
+
 if [ -n "$EXEEXT" ]; then
     # Convert ld.lld from a symlink to a regular file, so we can remove
     # the one it points to. On MSYS, and if packaging built toolchains
@@ -117,17 +121,22 @@ if [ -n "$EXEEXT" ]; then
         rm ld.lld$EXEEXT
         mv tmp ld.lld$EXEEXT
     fi
+
     # lld-link isn't used normally, but can be useful for debugging/testing,
     # and is kept in unix setups. Removing it when packaging for windows,
     # to conserve space.
     rm -f lld$EXEEXT lld-link$EXEEXT
+
     # Remove superfluous frontends; these aren't really used.
     rm -f clang-cpp* clang++*
 fi
+
 cd ..
 rm -rf libexec
+
 cd share
 cd clang
+
 for i in *; do
     case $i in
     clang-format*)
@@ -137,16 +146,20 @@ for i in *; do
         ;;
     esac
 done
+
 cd ..
 rm -rf opt-viewer scan-build scan-view
 rm -rf man/man1/scan-build*
+
 cd ..
 cd include
 rm -rf clang clang-c clang-tidy lld llvm llvm-c lldb
+
 cd ..
 cd lib
 rm -f *.dll.a
 rm -f lib*.a
+
 for i in *.so* *.dylib* cmake; do
     case $i in
     liblldb*|libclang-cpp*|libLLVM*)
@@ -156,4 +169,5 @@ for i in *.so* *.dylib* cmake; do
         ;;
     esac
 done
+
 cd ..

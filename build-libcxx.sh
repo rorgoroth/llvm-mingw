@@ -38,6 +38,7 @@ while [ $# -gt 0 ]; do
     fi
     shift
 done
+
 if [ -z "$PREFIX" ]; then
     echo "$0 [--disable-shared] [--disable-static] [--enable-cfguard|--disable-cfguard] dest"
     exit 1
@@ -45,24 +46,16 @@ fi
 
 mkdir -p "$PREFIX"
 PREFIX="$(cd "$PREFIX" && pwd)"
-
 export PATH="$PREFIX/bin:$PATH"
 
-: ${ARCHS:=${TOOLCHAIN_ARCHS-x86_64}}
+: ${ARCHS:=${TOOLCHAIN_ARCHS-i686 x86_64}}
 
 if [ ! -d llvm-project/libunwind ] || [ -n "$SYNC" ]; then
     CHECKOUT_ONLY=1 ./build-llvm.sh
 fi
 
 cd llvm-project
-
 cd runtimes
-
-for arch in $ARCHS; do
-    case $arch in
-    arm64ec) ARM64X_FLAGS="-marm64x" ;;
-    esac
-done
 
 for arch in $ARCHS; do
     [ -z "$CLEAN" ] || rm -rf build-$arch
@@ -77,13 +70,6 @@ for arch in $ARCHS; do
         # Force using the mingw stdio functions, for correct long double
         # printing.
         EXTRA_CFLAGS="-D__USE_MINGW_ANSI_STDIO=1"
-        ;;
-    aarch64)
-        EXTRA_CFLAGS="$ARM64X_FLAGS"
-        EXTRA_LDFLAGS="$ARM64X_FLAGS"
-        ;;
-    arm64ec)
-        continue
         ;;
     esac
 

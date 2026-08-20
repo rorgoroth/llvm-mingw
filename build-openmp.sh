@@ -32,6 +32,7 @@ while [ $# -gt 0 ]; do
     esac
     shift
 done
+
 if [ -z "$PREFIX" ]; then
     echo "$0 [--enable-cfguard|--disable-cfguard] dest"
     exit 1
@@ -39,10 +40,9 @@ fi
 
 mkdir -p "$PREFIX"
 PREFIX="$(cd "$PREFIX" && pwd)"
-
 export PATH="$PREFIX/bin:$PATH"
 
-: ${ARCHS:=${TOOLCHAIN_ARCHS-x86_64}}
+: ${ARCHS:=${TOOLCHAIN_ARCHS-i686 x86_64}}
 
 if [ ! -d llvm-project/openmp ] || [ -n "$SYNC" ]; then
     CHECKOUT_ONLY=1 ./build-llvm.sh
@@ -53,6 +53,7 @@ cd llvm-project/runtimes
 for arch in $ARCHS; do
     CMAKEFLAGS=""
     FLAGS=""
+
     case $arch in
     x86_64)
         CMAKEFLAGS="$CMAKEFLAGS -DLIBOMP_ASMFLAGS=-m64"
@@ -85,6 +86,7 @@ for arch in $ARCHS; do
         -DCMAKE_SHARED_LINKER_FLAGS="$FLAGS" \
         $CMAKEFLAGS \
         ..
+
     cmake --build .
     cmake --install .
     rm -f $PREFIX/$arch-w64-mingw32/bin/*iomp5md*

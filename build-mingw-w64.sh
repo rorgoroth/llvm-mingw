@@ -46,6 +46,7 @@ while [ $# -gt 0 ]; do
     esac
     shift
 done
+
 if [ -z "$CHECKOUT_ONLY" ]; then
     if [ -z "$PREFIX" ]; then
         echo "$0 [--skip-include-triplet-prefix] [--with-default-win32-winnt=0x601] [--with-default-msvcrt=ucrt] [--enable-cfguard|--disable-cfguard] dest"
@@ -88,7 +89,7 @@ unset CC
 : ${CORES:=$(nproc 2>/dev/null)}
 : ${CORES:=$(sysctl -n hw.ncpu 2>/dev/null)}
 : ${CORES:=4}
-: ${ARCHS:=${TOOLCHAIN_ARCHS-x86_64}}
+: ${ARCHS:=${TOOLCHAIN_ARCHS-i686 x86_64}}
 
 if [ -z "$SKIP_INCLUDE_TRIPLET_PREFIX" ]; then
     HEADER_ROOT="$PREFIX/generic-w64-mingw32"
@@ -100,16 +101,15 @@ cd mingw-w64-headers
 [ -z "$CLEAN" ] || rm -rf build
 mkdir -p build
 cd build
+
 ../configure --prefix="$HEADER_ROOT" \
     --enable-idl --with-default-win32-winnt=$DEFAULT_WIN32_WINNT --with-default-msvcrt=$DEFAULT_MSVCRT INSTALL="install -C"
 $MAKE install
+
 cd ../..
+
 if [ -z "$SKIP_INCLUDE_TRIPLET_PREFIX" ]; then
     for arch in $ARCHS; do
-        case $arch in
-        arm64ec) continue ;;
-        esac
-
         mkdir -p "$PREFIX/$arch-w64-mingw32"
         if [ ! -e "$PREFIX/$arch-w64-mingw32/include" ]; then
             ln -sfn ../generic-w64-mingw32/include "$PREFIX/$arch-w64-mingw32/include"
@@ -117,14 +117,8 @@ if [ -z "$SKIP_INCLUDE_TRIPLET_PREFIX" ]; then
     done
 fi
 
-ARM64X_FLAGS=""
-for arch in $ARCHS; do
-    case $arch in
-    arm64ec) ARM64X_FLAGS="--enable-arm64x" ;;
-    esac
-done
-
 cd mingw-w64-crt
+
 for arch in $ARCHS; do
     case $arch in
     i686)
@@ -134,23 +128,24 @@ for arch in $ARCHS; do
         FLAGS="--disable-lib32 --enable-lib64"
         ;;
     esac
+
     FLAGS="$FLAGS --with-default-msvcrt=$DEFAULT_MSVCRT"
     FLAGS="$FLAGS --enable-silent-rules"
+
     [ -z "$CLEAN" ] || rm -rf build-$arch
     mkdir -p build-$arch
     cd build-$arch
+
     ../configure --host=$arch-w64-mingw32 --prefix="$PREFIX/$arch-w64-mingw32" $FLAGS $CFGUARD_FLAGS $CRT_CONFIG_FLAGS
     $MAKE -j$CORES
     $MAKE install
+
     cd ..
 done
+
 cd ..
 
 for arch in $ARCHS; do
-    case $arch in
-    arm64ec) continue ;;
-    esac
-
     if [ ! -f $PREFIX/$arch-w64-mingw32/lib/libssp.a ]; then
         # Create empty dummy archives, to avoid failing when the compiler
         # driver adds "-lssp -lssh_nonshared" when linking.

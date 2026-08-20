@@ -32,10 +32,12 @@ while [ $# -gt 0 ]; do
     esac
     shift
 done
+
 if [ -z "$PREFIX" ]; then
     echo "$0 [--enable-cfguard|--disable-cfguard] dest"
     exit 1
 fi
+
 mkdir -p "$PREFIX"
 PREFIX="$(cd "$PREFIX" && pwd)"
 export PATH="$PREFIX/bin:$PATH"
@@ -44,7 +46,7 @@ unset CC
 : ${CORES:=$(nproc 2>/dev/null)}
 : ${CORES:=$(sysctl -n hw.ncpu 2>/dev/null)}
 : ${CORES:=4}
-: ${ARCHS:=${TOOLCHAIN_ARCHS-x86_64}}
+: ${ARCHS:=${TOOLCHAIN_ARCHS-i686 x86_64}}
 
 if [ ! -d mingw-w64 ] || [ -n "$SYNC" ]; then
     CHECKOUT_ONLY=1 ./build-mingw-w64.sh
@@ -55,31 +57,19 @@ if command -v gmake >/dev/null; then
     MAKE=gmake
 fi
 
-ARM64X_FLAGS=""
-for arch in $ARCHS; do
-    case $arch in
-    arm64ec) ARM64X_FLAGS="-marm64x" ;;
-    esac
-done
-
 cd mingw-w64/mingw-w64-libraries
+
 for lib in winpthreads; do
     cd $lib
     FLAGS=""
-    for arch in $ARCHS; do
-        case $arch in
-        aarch64)
-            FLAGS="$ARM64X_FLAGS"
-            ;;
-        arm64ec)
-            continue
-            ;;
-        esac
 
+    for arch in $ARCHS; do
         [ -z "$CLEAN" ] || rm -rf build-$arch
         mkdir -p build-$arch
         cd build-$arch
+
         arch_prefix="$PREFIX/$arch-w64-mingw32"
+
         ../configure --host=$arch-w64-mingw32 \
             --prefix="$arch_prefix" \
             --libdir="$arch_prefix/lib" \
@@ -89,11 +79,15 @@ for lib in winpthreads; do
             CFLAGS="$USE_CFLAGS $FLAGS" \
             CXXFLAGS="$USE_CFLAGS $FLAGS" \
             LDFLAGS="$FLAGS"
+
         $MAKE -j$CORES
         $MAKE install
+
         cd ..
+
         mkdir -p "$arch_prefix/share/mingw32"
         install -m644 COPYING "$arch_prefix/share/mingw32/COPYING.${lib}.txt"
     done
+
     cd ..
 done

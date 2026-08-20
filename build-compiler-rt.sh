@@ -48,10 +48,12 @@ while [ $# -gt 0 ]; do
     fi
     shift
 done
+
 if [ -z "$PREFIX" ]; then
     echo "$0 [--build-sanitizers] [--enable-cfguard|--disable-cfguard] [--native] dest"
     exit 1
 fi
+
 if [ -n "$SANITIZERS" ] && [ -n "$ENABLE_CFGUARD" ]; then
     echo "warning: Sanitizers may not work correctly with Control Flow Guard enabled." 1>&2
 fi
@@ -60,7 +62,7 @@ mkdir -p "$PREFIX"
 PREFIX="$(cd "$PREFIX" && pwd)"
 export PATH="$PREFIX/bin:$PATH"
 
-: ${ARCHS:=${TOOLCHAIN_ARCHS-x86_64}}
+: ${ARCHS:=${TOOLCHAIN_ARCHS-i686 x86_64}}
 
 CLANG_RESOURCE_DIR="$("$PREFIX/bin/clang" --print-resource-dir)"
 
@@ -74,6 +76,7 @@ cat<<EOF > is-ucrt.c
 #error not ucrt
 #endif
 EOF
+
 ANY_ARCH=$(echo $ARCHS | awk '{print $1}')
 if $ANY_ARCH-w64-mingw32-gcc$TOOLEXT -E is-ucrt.c > /dev/null 2>&1; then
     IS_UCRT=1
@@ -96,6 +99,7 @@ if [ -n "$NATIVE" ]; then
     mkdir -p build-native
     cd build-native
     [ -n "$NO_RECONF" ] || rm -rf CMake*
+
     cmake \
         ${CMAKE_GENERATOR+-G} "$CMAKE_GENERATOR" \
         -DCMAKE_BUILD_TYPE=Release \
@@ -114,36 +118,19 @@ if [ -n "$NATIVE" ]; then
     if [ "$INSTALL_PREFIX" != "$CLANG_RESOURCE_DIR" ]; then
         # symlink to system headers - skip copy
         rm -rf "$INSTALL_PREFIX/include"
-
         cp -r "$INSTALL_PREFIX/." $CLANG_RESOURCE_DIR
     fi
     exit 0
 fi
 
-ARM64X_FLAGS=""
-if [ -z "$SANITIZERS" ]; then
-    for arch in $ARCHS; do
-        case $arch in
-        arm64ec) ARM64X_FLAGS="-marm64x" ;;
-        esac
-    done
-fi
-
 for arch in $ARCHS; do
     FLAGS=""
-    case $arch in
-    aarch64)
-        FLAGS="$ARM64X_FLAGS"
-        ;;
-    arm64ec)
-        continue
-        ;;
-    esac
 
     [ -z "$CLEAN" ] || rm -rf build-$arch$BUILD_SUFFIX
     mkdir -p build-$arch$BUILD_SUFFIX
     cd build-$arch$BUILD_SUFFIX
     [ -n "$NO_RECONF" ] || rm -rf CMake*
+
     cmake \
         -G Ninja \
         -DCMAKE_BUILD_TYPE=Release \
@@ -172,6 +159,7 @@ for arch in $ARCHS; do
     cmake --build .
     cmake --install . --prefix "$INSTALL_PREFIX"
     mkdir -p "$PREFIX/$arch-w64-mingw32/bin"
+
     if [ -n "$SANITIZERS" ]; then
         if [ -z "$IS_UCRT" ]; then
             # For msvcrt builds, remove the asan files; asan doesn't work
@@ -179,19 +167,7 @@ for arch in $ARCHS; do
             # by omitting the installed files altogether.
             rm -f "$INSTALL_PREFIX/lib/windows/libclang_rt.asan"*
         else
-            case $arch in
-            aarch64)
-                # asan doesn't work on aarch64 or armv7; make this clear by omitting
-                # the installed files altogether.
-                rm -f "$INSTALL_PREFIX/lib/windows/libclang_rt.asan"*aarch64*
-                ;;
-            armv7)
-                rm -f "$INSTALL_PREFIX/lib/windows/libclang_rt.asan"*arm*
-                ;;
-            *)
-                mv "$INSTALL_PREFIX/lib/windows/"*.dll "$PREFIX/$arch-w64-mingw32/bin"
-                ;;
-            esac
+            mv "$INSTALL_PREFIX/lib/windows/"*.dll "$PREFIX/$arch-w64-mingw32/bin"
         fi
     fi
     cd ..
