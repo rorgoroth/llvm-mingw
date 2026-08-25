@@ -153,6 +153,14 @@ for arch in $ARCHS; do
         llvm-ar rcs $PREFIX/$arch-w64-mingw32/lib/libssp_nonshared.a
     fi
 
+    if [ ! -f $PREFIX/$arch-w64-mingw32/lib/libstdc++.a ]; then
+        # Create an empty dummy archive, to avoid failing when software.
+        # unconditionally adds "-lstdc++" when linking.
+        # This toolchain uses libc++, not libstdc++, so nothing actually
+        # needs real GNU libstdc++ symbols here.
+        llvm-ar rcs $PREFIX/$arch-w64-mingw32/lib/libstdc++.a
+    fi
+
     mkdir -p "$PREFIX/$arch-w64-mingw32/share/mingw32"
     for file in COPYING COPYING.MinGW-w64/COPYING.MinGW-w64.txt COPYING.MinGW-w64-runtime/COPYING.MinGW-w64-runtime.txt; do
         install -m644 "$file" "$PREFIX/$arch-w64-mingw32/share/mingw32"

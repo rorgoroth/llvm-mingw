@@ -16,8 +16,9 @@
 
 set -e
 
-: ${LLVM_REPOSITORY:=https://github.com/rorgoroth/llvm-project.git}
-: ${LLVM_VERSION:=22.1.8}
+: ${LLVM_REPOSITORY:=https://github.com/llvm/llvm-project.git}
+: ${LLVM_VERSION:=llvmorg-22.1.8}
+: ${PATCH_FILE:="$(cd "$(dirname "$0")" && pwd)/musl_stack_size.patch"}
 
 ASSERTS=OFF
 unset HOST
@@ -94,30 +95,32 @@ if [ -z "$CHECKOUT_ONLY" ]; then
 fi
 
 if [ ! -d llvm-project ]; then
-    mkdir llvm-project
+	git clone --depth 1 --no-tags --branch "$LLVM_VERSION" "${LLVM_REPOSITORY}" llvm-project
+	CHECKOUT=1
+fi
+
+if [ -n "$SYNC" ]; then
     cd llvm-project
-    git init
-    git remote add origin "${LLVM_REPOSITORY}"
+    if git cat-file -e "$LLVM_VERSION" 2>/dev/null; then
+        git checkout "$LLVM_VERSION"
+    else
+        git fetch --depth 1 origin "$LLVM_VERSION"
+        git checkout -B "$LLVM_VERSION" FETCH_HEAD
+    fi
+    git checkout -- .
+    git clean -fd
     cd ..
     CHECKOUT=1
 fi
 
-if [ -n "$SYNC" ] || [ -n "$CHECKOUT" ]; then
+if [ -n "$CHECKOUT" ]; then
     cd llvm-project
-
-    if git cat-file -e "$LLVM_VERSION" 2>/dev/null; then
-        git checkout "$LLVM_VERSION"
-    else
-        case "$LLVM_VERSION" in
-        llvmorg-*)
-            git fetch --depth 1 origin tag "$LLVM_VERSION"
-            git checkout "$LLVM_VERSION"
-            ;;
-        *)
-            git fetch --depth 1 origin "$LLVM_VERSION"
-            git checkout FETCH_HEAD
-            ;;
-        esac
+    if [ -n "$PATCH_FILE" ]; then
+        if [ ! -f "$PATCH_FILE" ]; then
+            echo "Patch file not found: $PATCH_FILE"
+            exit 1
+        fi
+        patch -p1 < "$PATCH_FILE"
     fi
     cd ..
 fi
